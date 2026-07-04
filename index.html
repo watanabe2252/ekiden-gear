@@ -591,12 +591,39 @@
             } catch (err) { logStatus("❌ 同期エラー: " + err.message); showError(); }
         }
 
-        // 🔄 手動更新（同期）実行関数
+        // 💡 外部から手動・直接追加されたマスター機材を自動アサインするロジックを統合した更新処理
         async function manualRefreshData() {
             const icon = document.getElementById('iconRefresh');
             if (icon) icon.classList.add('animate-spin');
             
-            // サイレントではなく明示的にデータリロードを実行
+            if (globalThis.sb && currentEventId) {
+                try {
+                    // 1. マスターの全機材IDと、現在の大会に割り当て済みの機材IDを両方取得
+                    const { data: masterGears } = await globalThis.sb.from('gears').select('id');
+                    const { data: currentAssigned } = await globalThis.sb.from('event_assignments').select('gear_id').eq('event_id', currentEventId);
+                    
+                    if (masterGears) {
+                        const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id)));
+                        // まだ現在の大会に入っていない新規機材（差分）を抽出
+                        const missingGears = masterGears.filter(g => !assignedIds.has(String(g.id)));
+                        
+                        if (missingGears.length > 0) {
+                            console.log(`⚠️ 外部追加を検知: ${missingGears.length}件の機材を “no assign” で自動アサインします。`);
+                            const insertRecords = missingGears.map(g => ({
+                                event_id: currentEventId,
+                                gear_id: g.id,
+                                location: "no assign"
+                            }));
+                            // 不足分の一括挿入を実行
+                            await globalThis.sb.from('event_assignments').insert(insertRecords);
+                        }
+                    }
+                } catch (e) {
+                    console.error("自動アサイン補正エラー:", e);
+                }
+            }
+
+            // 通常のデータ再取得を実行
             await fetchSupabaseData(false);
             
             if (icon) {
