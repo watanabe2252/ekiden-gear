@@ -1,3 +1,3 @@
 # ekiden-gear
 
-# teat
+# test
