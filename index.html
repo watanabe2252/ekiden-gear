@@ -6,13 +6,12 @@
     <title>⚡ 駅伝・マラソン機材管理 ＆ リアルタイムクラウド</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="駅伝機材管理">
     
     <meta name="mobile-web-app-capable" content="yes">
     
     <script>
-        // 💡 復活したID・パスワードログイン画面セッションとの完全連動チェック
         if (!localStorage.getItem('ekiden_secure_session')) {
             window.location.href = "login.html";
         }
@@ -45,9 +44,15 @@
         ::-webkit-scrollbar-thumb { background: #1e2538; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #10b981; }
         
-        /* 💡 iOS端末上部の時計・ステータスバー・ノッチ領域との重なりを完全に防ぐセーフエリア余白補正 */
+        /* 💡 iPhoneでのホーム画面アプリ起動時（スタンドアロン）のレイアウト崩れを防ぐ超堅牢CSS設定 */
         body {
-            padding-top: calc(env(safe-area-inset-top) + 24px);
+            /* 上部のノッチ・Dynamic Island・ステータスバー被りを完全防御 */
+            padding-top: env(safe-area-inset-top, 20px);
+            /* 下部のボトムバーがホームインジケーター（画面下の横棒）に被って押し潰されるのを防止 */
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            /* 高さを動的ビューポートに固定し、キーボード立ち上がり時等の崩れを防止 */
+            height: 100dvh;
+            max-height: 100dvh;
         }
 
         .keep-word {
@@ -55,13 +60,12 @@
             overflow-wrap: break-word;
         }
         
-        /* 検索バー内のアイコンプレース用微調整 */
         .search-container input {
             padding-left: 2rem;
         }
     </style>
 </head>
-<body class="bg-bgDark text-slate-100 h-[100svh] max-h-[100svh] overflow-hidden p-3 md:p-4 pt-0 md:pt-0 font-sans flex flex-col select-none">
+<body class="bg-bgDark text-slate-100 overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
 
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
         <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
@@ -228,7 +232,7 @@
                 </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto w-full pb-24">
+            <div class="flex-1 overflow-y-auto w-full pb-28">
                 <div id="gearCardList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2"></div>
             </div>
         </div>
@@ -249,11 +253,11 @@
                 </div>
             </div>
             <div class="bg-cardBg border border-borderStroke rounded-xl shadow-xl flex-1 overflow-hidden flex flex-col">
-                <div id="bbsTimeline" class="p-3 overflow-y-auto flex-1 space-y-2 pb-24"></div>
+                <div id="bbsTimeline" class="p-3 overflow-y-auto flex-1 space-y-2 pb-28"></div>
             </div>
         </div>
 
-        <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-24 overflow-y-auto">
+        <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-28 overflow-y-auto">
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-3">
                 <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-plus-circle"></i> 新規機材の登録</h3>
                 <div class="grid grid-cols-2 gap-2">
@@ -309,7 +313,7 @@
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl shrink-0">
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
             </div>
-            <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 shadow-xl pb-24">
+            <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 shadow-xl pb-28">
                 <table class="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr class="bg-slate-900/95 border-b border-borderStroke text-slate-400 text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10">
