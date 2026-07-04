@@ -44,10 +44,9 @@
         ::-webkit-scrollbar-thumb { background: #1e2538; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #10b981; }
         
-        /* iPhoneのノッチ（上部バー）や下部インジケーターの余白（セーフエリア）対策 */
+        /* iOSのノッチ（上部バー）対応のセーフエリア padding */
         body {
-            padding-top: calc(env(safe-area-inset-top) + 12px);
-            padding-bottom: calc(env(safe-area-inset-bottom) + 68px); /* ボトムバーと被らないよう下部余白を確保 */
+            padding-top: calc(env(safe-area-inset-top) + 8px);
         }
 
         /* 日本語の不自然な改行を防ぎ、単語の区切りで改行させる */
@@ -57,7 +56,7 @@
         }
     </style>
 </head>
-<body class="bg-bgDark text-slate-100 h-screen max-h-screen overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
+<body class="bg-bgDark text-slate-100 h-[100svh] max-h-[100svh] overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
 
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
         <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
@@ -196,7 +195,7 @@
             </div>
         </div>
 
-        <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2 pb-4">
+        <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl flex flex-col md:flex-row gap-2 items-center justify-between shrink-0">
                 <div class="flex flex-row w-full md:w-auto gap-1.5 items-center flex-1">
                     <div class="relative flex-1 md:flex-none md:w-56">
@@ -222,12 +221,12 @@
                 </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto w-full">
+            <div class="flex-1 overflow-y-auto w-full pb-24">
                 <div id="gearCardList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2"></div>
             </div>
         </div>
 
-        <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 pb-4 hidden">
+        <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 hidden">
             <div id="bbsFormContainer" class="bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2 transition-colors duration-200">
                 <div class="flex justify-between items-center">
                     <h3 id="bbsFormTitle" class="text-[11px] font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap">
@@ -243,11 +242,11 @@
                 </div>
             </div>
             <div class="bg-cardBg border border-borderStroke rounded-xl shadow-xl flex-1 overflow-hidden flex flex-col">
-                <div id="bbsTimeline" class="p-3 overflow-y-auto flex-1 space-y-2"></div>
+                <div id="bbsTimeline" class="p-3 overflow-y-auto flex-1 space-y-2 pb-24"></div>
             </div>
         </div>
 
-        <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-4 overflow-y-auto">
+        <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-24 overflow-y-auto">
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-3">
                 <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-plus-circle"></i> 新規機材の登録</h3>
                 <div class="grid grid-cols-2 gap-2">
@@ -299,11 +298,11 @@
             </div>
         </div>
 
-        <div id="pageMaintenance" class="space-y-2 hidden pb-4 flex-1 flex flex-col overflow-hidden">
+        <div id="pageMaintenance" class="space-y-2 hidden flex-1 flex flex-col overflow-hidden">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl shrink-0">
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
             </div>
-            <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 shadow-xl">
+            <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 shadow-xl pb-24">
                 <table class="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr class="bg-slate-900/95 border-b border-borderStroke text-slate-400 text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10">
@@ -388,7 +387,7 @@
         </div>
     </div>
 
-    <div id="bottomNavBar" class="fixed bottom-0 left-0 right-0 bg-cardBg/95 backdrop-blur-md border-t border-borderStroke pt-2 pb-[calc(env(safe-area-inset-bottom)+6px)] flex justify-around z-30 shadow-2xl hidden px-1">
+    <div id="bottomNavBar" class="fixed bottom-0 left-0 right-0 bg-cardBg/95 backdrop-blur-md border-t border-borderStroke pt-2.5 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-around z-30 shadow-2xl hidden px-1">
         <button id="navList" onclick="switchTab('list')" class="flex flex-col items-center gap-0.5 text-accentGreen text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-layer-group text-sm md:text-base"></i><span>機材配置</span></button>
         <button id="navBBS" onclick="switchTab('bbs')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-comments text-sm md:text-base"></i><span>現場掲示板</span></button>
         <button id="navRegister" onclick="switchTab('register')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-edit text-sm md:text-base"></i><span>データ登録</span></button>
