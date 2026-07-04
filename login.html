@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>⚡ 駅伝・マラソン機材管理 ＆ リアルタイムクラウド - ログイン</title>
+    <title>⚡ ログイン | 駅伝・マラソン機材管理システム</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <script>
@@ -26,84 +28,133 @@
         }
     </script>
 </head>
-<body class="bg-bgDark text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 font-sans select-none">
+<body class="bg-bgDark text-slate-100 h-[100svh] flex flex-col items-center justify-center p-4 font-sans select-none">
 
-    <div class="max-w-sm w-full bg-cardBg border border-borderStroke p-6 rounded-2xl shadow-2xl space-y-6">
+    <!-- ログインコンテナ -->
+    <div class="max-w-md w-full bg-cardBg border border-borderStroke p-6 rounded-2xl shadow-2xl space-y-6">
         
-        <div class="text-center space-y-2">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accentGreen/10 border border-accentGreen/30 text-accentGreen text-xl animate-pulse">
-                <i class="fas fa-bolt"></i>
-            </div>
-            <h1 class="text-base font-black tracking-wider text-white">駅伝・マラソン機材管理</h1>
-            <p class="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Realtime Cloud Synchronization</p>
+        <!-- ヘッダー -->
+        <div class="text-center space-y-1">
+            <h1 class="text-xl font-black text-white flex items-center justify-center gap-2">
+                <span class="text-accentGreen">⚡</span> 駅伝機材管理システム
+            </h1>
+            <p class="text-[10px] text-slate-500 font-mono tracking-widest uppercase">Cloud Synchronization System</p>
         </div>
 
-        <div class="space-y-4">
+        <!-- フォーム -->
+        <div class="space-y-4 text-xs">
             <div>
-                <label class="block text-[10px] text-slate-400 mb-1 font-bold tracking-wider uppercase">アクセスキー (PIN)</label>
+                <label class="block text-[10px] text-slate-400 mb-1 font-bold uppercase tracking-wider">メールアドレス / Email</label>
                 <div class="relative">
-                    <i class="fas fa-lock absolute left-3 top-3.5 text-slate-500 text-xs"></i>
-                    <input type="password" id="pinInput" placeholder="••••••••" class="w-full bg-bgDark border border-borderStroke rounded-xl pl-9 pr-4 py-2.5 text-sm text-white font-mono tracking-widest outline-none focus:border-accentGreen transition" onkeypress="if(event.key === 'Enter') handleLogin()">
+                    <i class="fas fa-envelope absolute left-3 top-3 text-slate-500"></i>
+                    <input type="email" id="loginEmail" placeholder="name@example.com" class="w-full bg-bgDark border border-borderStroke rounded-xl pl-9 pr-3 py-2.5 text-white outline-none focus:border-accentGreen font-sans">
                 </div>
             </div>
 
-            <div id="errorMsg" class="hidden text-[11px] text-rose-400 bg-rose-950/30 border border-rose-500/20 p-2.5 rounded-lg flex items-center gap-1.5 font-bold">
-                <i class="fas fa-exclamation-circle shrink-0"></i>
-                <span id="errorText">アクセスキーが正しくありません。</span>
+            <div>
+                <label class="block text-[10px] text-slate-400 mb-1 font-bold uppercase tracking-wider">パスワード / Password</label>
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-3 top-3 text-slate-500"></i>
+                    <input type="password" id="loginPassword" placeholder="••••••••" class="w-full bg-bgDark border border-borderStroke rounded-xl pl-9 pr-3 py-2.5 text-white outline-none focus:border-accentGreen font-mono" onkeypress="if(event.key === 'Enter') handleLogin()">
+                </div>
             </div>
 
-            <button onclick="handleLogin()" class="w-full bg-accentGreen hover:bg-emerald-600 text-bgDark font-black text-xs py-3 rounded-xl transition active:scale-[0.98] shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-1.5">
-                <i class="fas fa-sign-in-alt"></i> システムへ接続
+            <!-- エラーメッセージ表示エリア -->
+            <div id="errorMessage" class="hidden text-rose-400 text-[11px] font-bold bg-rose-950/20 border border-rose-500/30 p-2.5 rounded-xl text-center">
+                <i class="fas fa-exclamation-circle mr-1"></i> <span id="errorText"></span>
+            </div>
+
+            <!-- ログインボタン -->
+            <button onclick="handleLogin()" id="btnLogin" class="w-full bg-accentGreen hover:bg-emerald-600 text-bgDark font-black text-sm py-3 rounded-xl transition active:scale-[0.98] shadow-lg flex items-center justify-center gap-2">
+                <i class="fas fa-sign-in-alt"></i> <span>システムへ接続</span>
             </button>
         </div>
 
-        <div class="text-center border-t border-borderStroke/60 pt-4">
-            <p class="text-[9px] text-slate-600 font-mono">BROADCAST ENGINEERING & LIVE PRODUCTION</p>
+        <!-- フッター -->
+        <div class="text-center border-t border-borderStroke/60 pt-3">
+            <p class="text-[9px] text-slate-600 font-mono">&copy; 2026 Broadcast Engineering Team.</p>
         </div>
     </div>
 
+    <!-- 認証中ローディング画面 -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-bgDark/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-2 hidden">
+        <div class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
+        <p class="text-[10px] text-slate-400 font-mono tracking-widest">AUTHENTICATING SECURE SESSION...</p>
+    </div>
+
     <script>
-        // かんたん認証用のハッシュ/PINチェック（環境に応じて調整してください）
-        // ここではデフォルトの管理者PIN、または現場共通PINを設定
-        const ADMIN_PIN = "1030"; // 例：大会用暫定PIN
+        const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
+        
+        // Supabaseクライアントの初期化
+        const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-        // 既にセッションがある場合はメイン画面へ自動リダイレクト
-        if (localStorage.getItem('ekiden_secure_session')) {
-            window.location.href = "index.html";
-        }
+        // ページ読み込み時に既存セッションがあればスキップ
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('ekiden_secure_session')) {
+                window.location.href = "index.html";
+            }
+        });
 
-        function handleLogin() {
-            const pin = document.getElementById('pinInput').value.trim();
-            const errorMsg = document.getElementById('errorMsg');
+        async function handleLogin() {
+            if (!sb) return;
+
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const errorBox = document.getElementById('errorMessage');
             const errorText = document.getElementById('errorText');
+            const loading = document.getElementById('loadingOverlay');
 
-            if (!pin) {
-                errorText.innerText = "アクセスキーを入力してください。";
-                errorMsg.classList.remove('hidden');
+            // 入力チェック
+            if (!email || !password) {
+                errorText.innerText = "メールアドレスとパスワードを入力してください。";
+                errorBox.classList.remove('hidden');
                 return;
             }
 
-            // PINコードの判定（現場運用に合わせて役割を決定）
-            if (pin === ADMIN_PIN || pin === "broadcast2026") {
-                // セッションを保存
-                localStorage.setItem('ekiden_secure_session', 'true');
-                localStorage.setItem('ekiden_user_role', 'admin'); // 管理者権限
-                
-                errorMsg.classList.add('hidden');
-                window.location.href = "index.html"; // メインアプリへ
-            } else if (pin === "viewer") {
-                // 閲覧専用権限でのログイン
-                localStorage.setItem('ekiden_secure_session', 'true');
-                localStorage.setItem('ekiden_user_role', 'viewer'); 
-                
-                errorMsg.classList.add('hidden');
-                window.location.href = "index.html";
-            } else {
-                errorText.innerText = "アクセスキーが正しくないか、有効期限が切れています。";
-                errorMsg.classList.remove('hidden');
-                // 入力をクリア
-                document.getElementById('pinInput').value = "";
-                document.getElementById('pinInput').focus();
+            errorBox.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            try {
+                // Supabase Authを利用した正規認証処理
+                const { data, error } = await sb.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                if (data && data.session) {
+                    // セッション情報とアクセストークンを格納
+                    localStorage.setItem('ekiden_secure_session', data.session.access_token);
+                    
+                    // 💡 ユーザーのメタデータや特定のメールアドレスに応じて役割（Role）を判定・保持
+                    // （デフォルトで管理権限『admin』を付与し、index.htmlの制限を解除します）
+                    let userRole = "admin"; 
+                    if (email.includes('viewer')) {
+                        userRole = "viewer";
+                    } else if (email.includes('staff')) {
+                        userRole = "staff";
+                    }
+                    localStorage.setItem('ekiden_user_role', userRole);
+
+                    // メイン画面へ遷移
+                    window.location.href = "index.html";
+                } else {
+                    throw new Error("セッションの確立に失敗しました。");
+                }
+
+            } catch (err) {
+                console.error("Login Error:", err);
+                // エラーメッセージの表示（日本語化対応）
+                let displayMsg = err.message;
+                if (err.message.includes("Invalid login credentials")) {
+                    displayMsg = "メールアドレスまたはパスワードが正しくありません。";
+                }
+                errorText.innerText = displayMsg;
+                errorBox.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
             }
         }
     </script>

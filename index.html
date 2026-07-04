@@ -12,6 +12,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     
     <script>
+        // 💡 以前のメール・パスワード認証によるセッション保持チェック形式を適用
         if (!localStorage.getItem('ekiden_secure_session')) {
             window.location.href = "login.html";
         }
@@ -561,7 +562,7 @@
 
         function returnToEventMenu() { currentEventId = null; loadEventMenu(); }
 
-        // 💡 100%安全な手動高速データマージ方式へ刷新
+        // 💡 100%安全な分離型マージ処理（不整合を防止）
         async function fetchSupabaseData(silent = false) {
             if (!globalThis.sb || !currentEventId) return;
             if (!silent) showLoading(true, "LOADING DATA...");
@@ -576,7 +577,6 @@
                 }
                 if (!document.getElementById('locationManagerModal').classList.contains('hidden')) renderLocationManagerList();
 
-                // アサインデータとマスターデータを個別に取得して手動マージ
                 const { data: assignData, error: fetchErr } = await globalThis.sb.from('event_assignments').select('location, gear_id').eq('event_id', currentEventId);
                 if (fetchErr) throw fetchErr;
 
@@ -749,7 +749,6 @@
             if (document.getElementById('adminLocationForm')) document.getElementById('adminLocationForm').style.display = isViewer ? 'none' : 'flex';
             if (document.getElementById('btnOpenLocationManager')) document.getElementById('btnOpenLocationManager').style.display = isAdmin ? 'inline-block' : 'none';
             
-            // 各種タブボタンの表示制限
             document.getElementById('navRegister').style.display = (isViewer || isStaff) ? 'none' : 'flex';
             document.getElementById('navMaint').style.display = (isViewer || isStaff) ? 'none' : 'flex';
             
