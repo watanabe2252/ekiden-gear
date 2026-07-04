@@ -44,8 +44,9 @@
         ::-webkit-scrollbar-thumb { background: #1e2538; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #10b981; }
         
+        /* 💡 ステータスバー・ノッチとの被りを完全に防ぐための安全マージン補正 */
         body {
-            padding-top: calc(env(safe-area-inset-top) + 8px);
+            padding-top: calc(env(safe-area-inset-top) + 24px);
         }
 
         .keep-word {
@@ -54,8 +55,9 @@
         }
     </style>
 </head>
-<body class="bg-bgDark text-slate-100 h-[100svh] max-h-[100svh] overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
+<body class="bg-bgDark text-slate-100 h-[100svh] max-h-[100svh] overflow-hidden p-3 md:p-4 pt-0 md:pt-0 font-sans flex flex-col select-none">
 
+    <!-- ローディング画面 -->
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
         <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
         <p id="loadingText" class="text-[10px] text-slate-400 font-mono tracking-widest">CONNECTING TO SUPABASE...</p>
@@ -68,6 +70,7 @@
         </div>
     </div>
 
+    <!-- 大会ファイル目次 -->
     <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center">
         <div class="max-w-md w-full bg-cardBg border border-borderStroke p-5 rounded-2xl shadow-2xl space-y-4">
             <div class="border-b border-borderStroke pb-3 flex justify-between items-center gap-2">
@@ -89,6 +92,7 @@
         </div>
     </div>
 
+    <!-- 新規番組ファイル作成モーダル -->
     <div id="createEventModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeCreateEventModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-sm rounded-xl overflow-hidden shadow-2xl p-4 space-y-4" onclick="event.stopPropagation()">
             <div class="border-b border-borderStroke pb-2 flex justify-between items-center">
@@ -117,6 +121,7 @@
         </div>
     </div>
 
+    <!-- 大会編集モーダル -->
     <div id="editEventModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeEditEventModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-sm rounded-xl overflow-hidden shadow-2xl p-4 space-y-4" onclick="event.stopPropagation()">
             <div class="border-b border-borderStroke pb-2 flex justify-between items-center">
@@ -157,6 +162,7 @@
         </div>
     </div>
 
+    <!-- 配置先管理モーダル -->
     <div id="locationManagerModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeLocationManagerModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-md rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]" onclick="event.stopPropagation()">
             <div class="bg-slate-900 px-4 py-3 border-b border-borderStroke flex justify-between items-center shrink-0">
@@ -170,14 +176,16 @@
         </div>
     </div>
 
-    <div id="mainAppContent" class="max-w-6xl mx-auto w-full flex flex-col h-full overflow-hidden space-y-2.5 hidden">
+    <!-- メインアプリケーション画面 -->
+    <div id="mainAppContent" class="max-w-6xl mx-auto w-full flex flex-col h-full overflow-hidden space-y-2.5">
         
-        <div class="flex justify-between items-center border-b border-borderStroke pb-1.5 shrink-0 gap-2">
+        <!-- ヘッダーエリア -->
+        <div class="flex justify-between items-center border-b border-borderStroke pb-2 shrink-0 gap-2">
             <div class="min-w-0">
                 <h1 class="text-sm md:text-lg font-black text-white flex items-center gap-1.5 truncate">
                     <span class="text-accentGreen shrink-0">⚡</span> <span id="lblCurrentEventName" class="truncate">未選択の大会</span>
                 </h1>
-                <p class="text-[9px] md:text-[10px] text-slate-400 flex items-center gap-1.5 whitespace-nowrap overflow-x-auto no-scrollbar">
+                <p class="text-[9px] md:text-[10px] text-slate-400 flex items-center gap-1.5 whitespace-nowrap overflow-x-auto no-scrollbar mt-0.5">
                     <span class="shrink-0">現場同期システム</span>
                     <span class="text-slate-600">|</span>
                     <button onclick="returnToEventMenu()" class="text-accentGreen hover:underline font-bold text-[9px] flex items-center gap-1 shrink-0"><i class="fas fa-exchange-alt"></i> 📁 ファイル切替</button>
@@ -196,7 +204,9 @@
             </div>
         </div>
 
+        <!-- 1. 機材配置タブページ -->
         <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2">
+            <!-- 検索 ＆ フィルター -->
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl flex flex-col md:flex-row gap-2 items-center justify-between shrink-0">
                 <div class="flex flex-row w-full md:w-auto gap-1.5 items-center flex-1">
                     <div class="relative flex-1 md:flex-none md:w-56 flex items-center">
@@ -222,11 +232,13 @@
                 </div>
             </div>
             
+            <!-- カードリストエリア -->
             <div class="flex-1 overflow-y-auto w-full pb-24">
                 <div id="gearCardList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2"></div>
             </div>
         </div>
 
+        <!-- 2. 現場掲示板タブページ -->
         <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 hidden">
             <div id="bbsFormContainer" class="bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2 transition-colors duration-200">
                 <div class="flex justify-between items-center">
@@ -247,6 +259,7 @@
             </div>
         </div>
 
+        <!-- 3. データ登録タブページ -->
         <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-24 overflow-y-auto">
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-3">
                 <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-plus-circle"></i> 新規機材の登録</h3>
@@ -299,6 +312,7 @@
             </div>
         </div>
 
+        <!-- 4. 管理設定タブページ -->
         <div id="pageMaintenance" class="space-y-2 hidden flex-1 flex flex-col overflow-hidden">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl shrink-0">
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
@@ -319,6 +333,7 @@
         </div>
     </div>
 
+    <!-- 詳細メンテナンスモーダル -->
     <div id="maintModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeMaintModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-xl rounded-xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col" onclick="event.stopPropagation()">
             <div class="bg-slate-900 px-4 py-3 border-b border-borderStroke flex justify-between items-center shrink-0">
@@ -388,6 +403,7 @@
         </div>
     </div>
 
+    <!-- ボトムタブナビゲーション -->
     <div id="bottomNavBar" class="fixed bottom-0 left-0 right-0 bg-cardBg/95 backdrop-blur-md border-t border-borderStroke pt-2.5 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-around z-30 shadow-2xl hidden px-1">
         <button id="navList" onclick="switchTab('list')" class="flex flex-col items-center gap-0.5 text-accentGreen text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-layer-group text-sm md:text-base"></i><span>機材配置</span></button>
         <button id="navBBS" onclick="switchTab('bbs')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-comments text-sm md:text-base"></i><span>現場掲示板</span></button>
@@ -603,7 +619,7 @@
                     });
                 }
 
-                const { data: msgData } = await globalThis.sb.from('messages').select('*').eq('event_id', currentEventId).order('created_at', { ascending: false });
+                const { data: msgData = [] } = await globalThis.sb.from('messages').select('*').eq('event_id', currentEventId).order('created_at', { ascending: false });
                 bbsMessages = msgData || [];
 
                 renderTable();
