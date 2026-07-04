@@ -560,26 +560,64 @@
 
         function returnToEventMenu() { currentEventId = null; loadEventMenu(); }
 
+        // 💡 結合クエリとエラー耐性を完全強化
         async function fetchSupabaseData(silent = false) {
             if (!globalThis.sb || !currentEventId) return;
             if (!silent) showLoading(true, "LOADING DATA...");
             try {
-                const { data: locData } = await globalThis.sb.from('locations').select('id, name').eq('event_id', currentEventId).order('created_at', { ascending: true });
-                rawCloudLocations = locData || [];
+                // 配置先ポイントデータの安全取得
+                const { data: locData, error: locErr } = await globalThis.sb.from('locations').select('id, name').eq('event_id', currentEventId).order('created_at', { ascending: true });
+                if (!locErr) {
+                    rawCloudLocations = locData || [];
+                } else {
+                    console.error("Locations Fetch Error:", locErr);
+                    rawCloudLocations = [];
+                }
+                
                 const prevFilter = document.getElementById('filterLocation')?.value || 'ALL';
                 locations = [...defaultLocations, ...rawCloudLocations.map(l => l.name)];
                 updateSelectBoxes();
                 if (document.getElementById('filterLocation')) {
                     document.getElementById('filterLocation').value = locations.includes(prevFilter) || prevFilter === 'ALL' ? prevFilter : 'ALL';
                 }
+                
+                // モーダルが立ち上がっている場合はリストを再描写
                 if (!document.getElementById('locationManagerModal').classList.contains('hidden')) renderLocationManagerList();
 
-                const { data: assignData } = await globalThis.sb.from('event_assignments').select(`location, gears (id, name, category, num, mfr, serial, asset, attachments, image_url)`).eq('event_id', currentEventId);
-                gears = (assignData || []).filter(item => item.gears !== null).map(item => ({
-                    id: item.gears.id, name: item.gears.name, category: item.gears.category, num: item.gears.num,
-                    mfr: item.gears.mfr, serial: item.gears.serial, asset: item.gears.asset, attachments: item.gears.attachments,
-                    image_url: item.gears.image_url, location: item.location 
-                }));
+                // 🔄 外部キー・結合クエリの互換性100%安全対応版
+                // gearsが単数形・複数形どちらの構成でも動くように両フォールバックを組み込み
+                let assignData = null;
+                
+                // まず明示的リレーションキー (gears:gear_id) で試行
+                let { data: test1, error: err1 } = await globalThis.sb
+                    .from('event_assignments')
+                    .select(`location, gears:gear_id (id, name, category, num, mfr, serial, asset, attachments, image_url)`)
+                    .eq('event_id', currentEventId);
+                
+                if (!err1 && test1 && test1.length > 0 && test1[0].gears !== null) {
+                    assignData = test1;
+                } else {
+                    // 標準の複数形リレーションでフォールバック試行
+                    let { data: test2, error: err2 } = await globalThis.sb
+                        .from('event_assignments')
+                        .select(`location, gears (id, name, category, num, mfr, serial, asset, attachments, image_url)`)
+                        .eq('event_id', currentEventId);
+                    if (!err2) assignData = test2;
+                }
+
+                // データの整形処理 (nullチェック保護)
+                gears = [];
+                if (assignData && assignData.length > 0) {
+                    assignData.forEach(item => {
+                        if (item && item.gears) {
+                            gears.push({
+                                id: item.gears.id, name: item.gears.name, category: item.gears.category, num: item.gears.num,
+                                mfr: item.gears.mfr, serial: item.gears.serial, asset: item.gears.asset, attachments: item.gears.attachments,
+                                image_url: item.gears.image_url, location: item.location 
+                            });
+                        }
+                    });
+                }
 
                 const { data: msgData } = await globalThis.sb.from('messages').select('*').eq('event_id', currentEventId).order('created_at', { ascending: false });
                 bbsMessages = msgData || [];
@@ -591,30 +629,27 @@
             } catch (err) { logStatus("❌ 同期エラー: " + err.message); showError(); }
         }
 
-        // 💡 外部から手動・直接追加されたマスター機材を自動アサインするロジックを統合した更新処理
+        // 手動・外部直接追加マスター機材のアサイン救済処理
         async function manualRefreshData() {
             const icon = document.getElementById('iconRefresh');
             if (icon) icon.classList.add('animate-spin');
             
             if (globalThis.sb && currentEventId) {
                 try {
-                    // 1. マスターの全機材IDと、現在の大会に割り当て済みの機材IDを両方取得
                     const { data: masterGears } = await globalThis.sb.from('gears').select('id');
                     const { data: currentAssigned } = await globalThis.sb.from('event_assignments').select('gear_id').eq('event_id', currentEventId);
                     
                     if (masterGears) {
                         const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id)));
-                        // まだ現在の大会に入っていない新規機材（差分）を抽出
                         const missingGears = masterGears.filter(g => !assignedIds.has(String(g.id)));
                         
                         if (missingGears.length > 0) {
-                            console.log(`⚠️ 外部追加を検知: ${missingGears.length}件の機材を “no assign” で自動アサインします。`);
+                            console.log(`⚠️ 外部追加を検知: ${missingGears.length}件の機材を自動追加します。`);
                             const insertRecords = missingGears.map(g => ({
                                 event_id: currentEventId,
                                 gear_id: g.id,
                                 location: "no assign"
                             }));
-                            // 不足分の一括挿入を実行
                             await globalThis.sb.from('event_assignments').insert(insertRecords);
                         }
                     }
@@ -623,7 +658,6 @@
                 }
             }
 
-            // 通常のデータ再取得を実行
             await fetchSupabaseData(false);
             
             if (icon) {
@@ -741,10 +775,19 @@
         function openLocationManagerModal() { if (userRole === 'admin') document.getElementById('locationManagerModal').classList.remove('hidden'); }
         function closeLocationManagerModal() { document.getElementById('locationManagerModal').classList.add('hidden'); }
 
+        // 💡 白画面化バグを完全にガードした配置先一覧レンダラー
         function renderLocationManagerList() {
             const container = document.getElementById('locationManagerList');
             if (!container) return;
-            if (rawCloudLocations.length === 0) { container.innerHTML = `<p class="text-xs text-slate-500 py-4 text-center">カスタム配置先はありません。</p>`; return; }
+            if (!rawCloudLocations || rawCloudLocations.length === 0) { 
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-500">
+                        <i class="fas fa-map-marker-alt text-2xl mb-2 block text-slate-600"></i>
+                        <p class="text-xs font-bold">カスタム配置先が登録されていません。</p>
+                        <p class="text-[10px] mt-1 text-slate-600">上のフォームから新しい配置ポイントを追加してください。</p>
+                    </div>`; 
+                return; 
+            }
             container.innerHTML = rawCloudLocations.map(loc => `
                 <div class="bg-bgDark border border-borderStroke p-2.5 rounded-lg flex items-center justify-between gap-2">
                     <input type="text" value="${loc.name}" onchange="updateLocationName(${loc.id}, this.value)" class="flex-1 bg-cardBg border border-borderStroke rounded px-2 py-1 text-xs text-white focus:border-yellow-500 outline-none font-bold">
@@ -966,7 +1009,11 @@
             if (!name) return alert("配置先（ポイント名）を入力してください。");
             if (locations.includes(name)) return alert("その配置先はすでに登録されています。");
             showLoading(true, "ADDING...");
-            try { await globalThis.sb.from('locations').insert([{ event_id: currentEventId, name }]); input.value = ""; } catch (err) { alert("追加失敗: " + err.message); } finally { showLoading(false); }
+            try { 
+                await globalThis.sb.from('locations').insert([{ event_id: currentEventId, name }]); 
+                input.value = ""; 
+                await fetchSupabaseData(true);
+            } catch (err) { alert("追加失敗: " + err.message); } finally { showLoading(false); }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
