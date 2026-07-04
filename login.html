@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚡ 駅伝・マラソン機材管理 ＆ リアルタイムクラウド - ログイン</title>
+    
+    <script>
+        const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
+        
+        // ユーザーIDをメール形式に変換するためのダミードメイン定義
+        const ID_DOMAIN = "@ekiden.local";
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgDark: '#070a13',
+                        cardBg: '#111625',
+                        borderStroke: '#1e2538',
+                        accentGreen: '#10b981'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-bgDark text-slate-100 h-screen w-screen p-4 font-sans flex flex-col items-center justify-center select-none overflow-hidden">
+
+    <div class="max-w-md w-full bg-cardBg border border-borderStroke p-6 rounded-2xl shadow-2xl space-y-5">
+        
+        <div class="text-center border-b border-borderStroke pb-4">
+            <h1 class="text-base md:text-lg font-black text-white flex items-center justify-center gap-1.5">
+                <span class="text-accentGreen">⚡</span> 駅伝機材管理 ＆ 連絡用クラウド
+            </h1>
+            <p class="text-[10px] text-slate-400 font-bold tracking-wider mt-1 uppercase">現場用リアルタイム同期システム — 認証ゲート</p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-[10px] text-slate-400 mb-1 font-bold tracking-widest uppercase">ユーザーID</label>
+                <div class="relative">
+                    <i class="fas fa-user absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                    <input type="text" id="userId" placeholder="例: staff01" class="w-full bg-bgDark border border-borderStroke rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:border-accentGreen focus:ring-0 outline-none transition-colors">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-[10px] text-slate-400 mb-1 font-bold tracking-widest uppercase">パスワード</label>
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                    <input type="password" id="password" placeholder="••••••••" class="w-full bg-bgDark border border-borderStroke rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:border-accentGreen focus:ring-0 outline-none transition-colors" onkeypress="if(event.key === 'Enter') handleLogin()">
+                </div>
+            </div>
+
+            <div id="errorAlert" class="hidden bg-rose-950/20 border border-rose-500/30 p-3 rounded-lg text-left space-y-1">
+                <p class="text-rose-400 font-black text-[11px] flex items-center gap-1.5">
+                    <i class="fas fa-exclamation-triangle"></i> 認証シグナルエラー
+                </p>
+                <p id="errorText" class="font-mono text-[10px] text-slate-300 leading-tight"></p>
+            </div>
+
+            <button onclick="handleLogin()" id="btnLoginSubmit" class="w-full bg-accentGreen hover:bg-emerald-600 text-bgDark font-black text-xs px-4 py-2.5 rounded-lg transition active:scale-[0.98] shadow-lg flex items-center justify-center gap-2">
+                <i class="fas fa-sign-in-alt"></i> アプリケーションを開く
+            </button>
+        </div>
+    </div>
+
+    <p class="text-[9px] text-slate-600 font-mono tracking-widest mt-4">SECURED BY SUPABASE AUTHENTICATION</p>
+
+    <script>
+        globalThis.sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        async function handleLogin() {
+            if (!globalThis.sb) return;
+
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value;
+            const errorAlert = document.getElementById('errorAlert');
+            const errorText = document.getElementById('errorText');
+            const btn = document.getElementById('btnLoginSubmit');
+
+            errorAlert.classList.add('hidden');
+            
+            if (!userId || !password) {
+                errorAlert.classList.remove('hidden');
+                errorText.innerText = "ユーザーIDとパスワードを入力してください。";
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-circle-notch animate-spin"></i> VERIFYING CREDENTIALS...`;
+
+            const email = userId.includes('@') ? userId : userId + ID_DOMAIN;
+
+            try {
+                const { data, error } = await globalThis.sb.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                localStorage.setItem('ekiden_secure_session', JSON.stringify(data.session));
+                
+                // 🆕 【重要】Supabaseのメタデータを使わず、入力された「ユーザーID」の文字列で権限を自動判定する
+                let userRole = 'viewer'; // デフォルトは閲覧用
+                
+                if (userId === 'admin') {
+                    userRole = 'admin';  // adminというIDなら管理者権限
+                } else if (userId.startsWith('staff')) {
+                    userRole = 'staff';  // staffから始まるID（staff01など）なら機材担当スタッフ権限
+                }
+                
+                // 判定した権限をブラウザに保存
+                localStorage.setItem('ekiden_user_role', userRole);
+                
+                if(!localStorage.getItem('ekiden_bbs_name')) {
+                    localStorage.setItem('ekiden_bbs_name', userId);
+                }
+
+                window.location.href = "index.html";
+
+            } catch (err) {
+                errorAlert.classList.remove('hidden');
+                errorText.innerText = err.message === "Invalid login credentials" ? "ユーザーIDまたはパスワードが正しくありません。" : err.message;
+                
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-sign-in-alt"></i> アプリケーションを開く`;
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if(localStorage.getItem('ekiden_secure_session')) {
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</body>
+</html>
