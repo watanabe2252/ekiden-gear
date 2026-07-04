@@ -12,6 +12,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     
     <script>
+        // 💡 復活したID・パスワードログイン画面セッションとの完全連動チェック
         if (!localStorage.getItem('ekiden_secure_session')) {
             window.location.href = "login.html";
         }
@@ -21,7 +22,7 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <script>
@@ -44,17 +45,23 @@
         ::-webkit-scrollbar-thumb { background: #1e2538; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #10b981; }
         
+        /* 💡 iOS端末上部の時計・ステータスバー・ノッチ領域との重なりを完全に防ぐセーフエリア余白補正 */
         body {
-            padding-top: calc(env(safe-area-inset-top) + 8px);
+            padding-top: calc(env(safe-area-inset-top) + 24px);
         }
 
         .keep-word {
             word-break: keep-all;
             overflow-wrap: break-word;
         }
+        
+        /* 検索バー内のアイコンプレース用微調整 */
+        .search-container input {
+            padding-left: 2rem;
+        }
     </style>
 </head>
-<body class="bg-bgDark text-slate-100 h-[100svh] max-h-[100svh] overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
+<body class="bg-bgDark text-slate-100 h-[100svh] max-h-[100svh] overflow-hidden p-3 md:p-4 pt-0 md:pt-0 font-sans flex flex-col select-none">
 
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
         <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
@@ -171,12 +178,12 @@
 
     <div id="mainAppContent" class="max-w-6xl mx-auto w-full flex flex-col h-full overflow-hidden space-y-2.5 hidden">
         
-        <div class="flex justify-between items-center border-b border-borderStroke pb-1.5 shrink-0 gap-2">
+        <div class="flex justify-between items-center border-b border-borderStroke pb-2 shrink-0 gap-2">
             <div class="min-w-0">
                 <h1 class="text-sm md:text-lg font-black text-white flex items-center gap-1.5 truncate">
                     <span class="text-accentGreen shrink-0">⚡</span> <span id="lblCurrentEventName" class="truncate">未選択の大会</span>
                 </h1>
-                <p class="text-[9px] md:text-[10px] text-slate-400 flex items-center gap-1.5 whitespace-nowrap overflow-x-auto no-scrollbar">
+                <p class="text-[9px] md:text-[10px] text-slate-400 flex items-center gap-1.5 whitespace-nowrap overflow-x-auto no-scrollbar mt-0.5">
                     <span class="shrink-0">現場同期システム</span>
                     <span class="text-slate-600">|</span>
                     <button onclick="returnToEventMenu()" class="text-accentGreen hover:underline font-bold text-[9px] flex items-center gap-1 shrink-0"><i class="fas fa-exchange-alt"></i> 📁 ファイル切替</button>
@@ -198,24 +205,24 @@
         <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl flex flex-col md:flex-row gap-2 items-center justify-between shrink-0">
                 <div class="flex flex-row w-full md:w-auto gap-1.5 items-center flex-1">
-                    <div class="relative flex-1 md:flex-none md:w-56">
-                        <i class="fas fa-search absolute left-2.5 top-2.5 text-slate-500 text-[10px]"></i>
-                        <input type="text" id="searchKeyword" oninput="renderTable()" placeholder="機材名、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg pl-7 pr-2 py-1 text-xs text-white focus:border-accentGreen outline-none">
+                    <div class="relative flex-1 md:flex-none md:w-56 search-container flex items-center">
+                        <i class="fas fa-search absolute left-3 text-slate-500 text-[10px] pointer-events-none z-10"></i>
+                        <input type="text" id="searchKeyword" oninput="renderTable()" placeholder="機材名、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg pr-2 py-1.5 text-xs text-white focus:border-accentGreen outline-none">
                     </div>
                     <div class="flex-1 md:flex-none md:w-40 flex items-center gap-1">
-                        <select id="filterLocation" onchange="renderTable()" class="w-full bg-bgDark border border-borderStroke rounded-lg py-1 px-2 text-xs text-white focus:border-accentGreen outline-none"></select>
-                        <button id="btnOpenLocationManager" onclick="openLocationManagerModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-slate-700 p-1.5 rounded-lg text-xs transition active:scale-95 shrink-0">
+                        <select id="filterLocation" onchange="renderTable()" class="w-full bg-bgDark border border-borderStroke rounded-lg py-1.5 px-2 text-xs text-white focus:border-accentGreen outline-none"></select>
+                        <button id="btnOpenLocationManager" onclick="openLocationManagerModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-slate-700 p-2 rounded-lg text-xs transition active:scale-95 shrink-0">
                             <i class="fas fa-cog"></i>
                         </button>
                     </div>
                 </div>
                 
                 <div id="adminLocationForm" class="w-full md:w-auto flex items-center gap-1.5 border-t md:border-t-0 border-borderStroke/60 pt-2 md:pt-0">
-                    <div class="relative flex-1 md:w-48">
-                        <i class="fas fa-map-marker-alt absolute left-2.5 top-2.5 text-yellow-500 text-[10px]"></i>
-                        <input type="text" id="newPointName" placeholder="新配置先（例: 3中継点）" class="w-full bg-bgDark border border-borderStroke rounded-lg pl-7 pr-2 py-1 text-xs text-white focus:border-yellow-500 outline-none">
+                    <div class="relative flex-1 md:w-48 search-container flex items-center">
+                        <i class="fas fa-map-marker-alt absolute left-3 text-yellow-500 text-[10px] pointer-events-none z-10"></i>
+                        <input type="text" id="newPointName" placeholder="新配置先（例: 3中継点）" class="w-full bg-bgDark border border-borderStroke rounded-lg pr-2 py-1.5 text-xs text-white focus:border-yellow-500 outline-none">
                     </div>
-                    <button onclick="addLocationPoint()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black text-[10px] px-3 py-1.5 rounded-lg transition active:scale-95 shrink-0 whitespace-nowrap">
+                    <button onclick="addLocationPoint()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black text-[10px] px-3 py-2 rounded-lg transition active:scale-95 shrink-0 whitespace-nowrap">
                         📍 配置先追加
                     </button>
                 </div>
@@ -306,8 +313,8 @@
                 <table class="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr class="bg-slate-900/95 border-b border-borderStroke text-slate-400 text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10">
-                            <th class="p-2 w-[22%] whitespace-nowrap">機材ID</th>
-                            <th class="p-2 w-[28%] whitespace-nowrap">カテゴリー</th>
+                            <th class="p-2 w-[25%] whitespace-nowrap">機材ID</th>
+                            <th class="p-2 w-[25%] whitespace-nowrap">カテゴリー</th>
                             <th class="p-2 w-[40%] whitespace-nowrap">機材名</th>
                             <th class="p-2 w-[10%] text-right whitespace-nowrap"></th>
                         </tr>
@@ -423,6 +430,7 @@
 
         async function loadEventMenu() {
             if (!globalThis.sb) return;
+            userRole = localStorage.getItem('ekiden_user_role') || 'viewer';
             document.getElementById('loadingScreen').classList.remove('hidden');
             logStatus("🔌 大会リストの同期を開始...");
             try {
@@ -536,13 +544,11 @@
 
         function returnToEventMenu() { currentEventId = null; loadEventMenu(); }
 
-        // 💡 結合失敗・一部レコードの不整合時でも絶対に白画面にさせない超堅牢型データフェッチ
         async function fetchSupabaseData(silent = false) {
             if (!globalThis.sb || !currentEventId) return;
             if (!silent) document.getElementById('loadingScreen').classList.remove('hidden');
             logStatus(`🔄 データベース同期中... (大会ID: ${currentEventId})`);
             try {
-                // 1. locations の読み込み
                 const { data: locData, error: locErr } = await globalThis.sb.from('locations').select('id, name').eq('event_id', currentEventId).order('created_at', { ascending: true });
                 if (!locErr) {
                     rawCloudLocations = locData || [];
@@ -555,7 +561,6 @@
                 }
                 if (!document.getElementById('locationManagerModal').classList.contains('hidden')) renderLocationManagerList();
 
-                // 2. event_assignments と gears の結合データ読み込み (エイリアス対応フォールバック付)
                 let assignData = null;
                 let { data: t1, error: e1 } = await globalThis.sb
                     .from('event_assignments')
@@ -572,20 +577,17 @@
                     if (!e2) assignData = t2;
                 }
 
-                // 3. データ配列の安全な詰め替え (結合失敗時・直接追加データも救済)
                 gears = [];
                 if (assignData && assignData.length > 0) {
                     assignData.forEach(item => {
                         if (item) {
                             if (item.gears) {
-                                // リレーション結合成功ルート
                                 gears.push({
                                     id: item.gears.id, name: item.gears.name, category: item.gears.category, num: item.gears.num,
                                     mfr: item.gears.mfr, serial: item.gears.serial, asset: item.gears.asset, attachments: item.gears.attachments,
                                     image_url: item.gears.image_url, location: item.location || "no assign"
                                 });
                             } else {
-                                // 紐付け失敗データのフォールバック救済ルート
                                 gears.push({
                                     id: item.gear_id || "UNKNOWN-ID", name: "名称未定義 (マスター未同期)", category: "未分類", num: "-",
                                     mfr: "-", serial: "-", asset: "-", attachments: "", image_url: "", location: item.location || "no assign"
@@ -612,7 +614,6 @@
             }
         }
 
-        // 手動同期ボタンをトリガーにした差分（直接追加機材）の自動アサイン補正
         async function manualRefreshData() {
             const icon = document.getElementById('iconRefresh');
             if (icon) icon.classList.add('animate-spin');
@@ -939,10 +940,10 @@
             document.getElementById('pageBBS').classList.toggle('hidden', tab !== 'bbs');
             document.getElementById('pageRegister').classList.toggle('hidden', tab !== 'register');
             document.getElementById('pageMaintenance').classList.toggle('hidden', tab !== 'maintenance');
-            document.getElementById('navList').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 ${tab === 'list' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navBBS').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 ${tab === 'bbs' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navRegister').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 ${tab === 'register' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navMaint').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 ${tab === 'maintenance' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navList').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'list' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navBBS').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'bbs' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navRegister').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'register' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navMaint').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'maintenance' ? 'text-accentGreen' : 'text-gray-500'}`;
         }
 
         function updateSelectBoxes() {
