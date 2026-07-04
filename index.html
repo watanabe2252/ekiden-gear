@@ -2,8 +2,14 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>⚡ 駅伝・マラソン機材管理 ＆ リアルタイムクラウド</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="駅伝機材管理">
+    
+    <meta name="mobile-web-app-capable" content="yes">
     
     <script>
         if (!localStorage.getItem('ekiden_secure_session')) {
@@ -14,7 +20,6 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <meta name="mobile-web-app-capable" content="yes">
     
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -38,6 +43,12 @@
         ::-webkit-scrollbar-track { background: #070a13; }
         ::-webkit-scrollbar-thumb { background: #1e2538; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+        
+        /* iPhoneのノッチ（上部バー）や下部インジケーターの余白（セーフエリア）対策 */
+        body {
+            padding-top: calc(env(safe-area-inset-top) + 12px);
+            padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+        }
     </style>
 </head>
 <body class="bg-bgDark text-slate-100 h-screen max-h-screen overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
@@ -149,8 +160,7 @@
                 <h3 class="text-xs font-black text-white flex items-center gap-1.5 uppercase"><i class="fas fa-map-marked-alt text-yellow-500"></i> 配置先の編集・削除</h3>
                 <button onclick="closeLocationManagerModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
-            <div class="p-4 overflow-y-auto flex-1 space-y-3" id="locationManagerList">
-                </div>
+            <div class="p-4 overflow-y-auto flex-1 space-y-3" id="locationManagerList"></div>
             <div class="bg-slate-900/50 px-4 py-2 border-t border-borderStroke flex justify-end shrink-0">
                 <button onclick="closeLocationManagerModal()" class="bg-slate-800 text-gray-300 px-4 py-1.5 rounded-lg font-bold text-xs">閉じる</button>
             </div>
@@ -189,7 +199,7 @@
                     </div>
                     <div class="flex-1 md:flex-none md:w-40 flex items-center gap-1">
                         <select id="filterLocation" onchange="renderTable()" class="w-full bg-bgDark border border-borderStroke rounded-lg py-1 px-2 text-xs text-white focus:border-accentGreen outline-none"></select>
-                        <button id="btnOpenLocationManager" onclick="openLocationManagerModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-slate-700 p-1.5 rounded-lg text-xs transition active:scale-95 shrink-0" title="配置先の管理・編集">
+                        <button id="btnOpenLocationManager" onclick="openLocationManagerModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-slate-700 p-1.5 rounded-lg text-xs transition active:scale-95 shrink-0">
                             <i class="fas fa-cog"></i>
                         </button>
                     </div>
@@ -217,17 +227,13 @@
                     <h3 id="bbsFormTitle" class="text-[11px] font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fas fa-comment-dots"></i> 現場全体へメッセージを一斉送信
                     </h3>
-                    <button id="btnCancelEdit" onclick="cancelBBSEdit()" class="hidden text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
-                        キャンセル
-                    </button>
+                    <button id="btnCancelEdit" onclick="cancelBBSEdit()" class="hidden text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">キャンセル</button>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-2">
                     <input type="hidden" id="editMsgId">
                     <input type="text" id="msgName" placeholder="投稿者名" class="sm:w-1/4 bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none focus:border-accentGreen">
                     <input type="text" id="msgBody" placeholder="連絡事項を入力..." class="flex-1 bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none focus:border-accentGreen" onkeypress="if(event.key === 'Enter') sendBBSMessage()">
-                    <button id="btnBBSSubmit" onclick="sendBBSMessage()" class="bg-accentGreen hover:bg-emerald-600 text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition active:scale-95 shrink-0">
-                        送信
-                    </button>
+                    <button id="btnBBSSubmit" onclick="sendBBSMessage()" class="bg-accentGreen hover:bg-emerald-600 text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition active:scale-95 shrink-0">送信</button>
                 </div>
             </div>
             <div class="bg-cardBg border border-borderStroke rounded-xl shadow-xl flex-1 overflow-hidden flex flex-col">
@@ -237,7 +243,7 @@
 
         <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-20 overflow-y-auto">
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-3">
-                <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-plus-circle"></i> 新規機材の登録(マスターへの追加)</h3>
+                <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-plus-circle"></i> 新規機材の登録</h3>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">機材名 *</label>
@@ -385,16 +391,13 @@
 
     <script>
         globalThis.sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
         const defaultLocations = ["no assign"];
         let locations = [...defaultLocations];
         let rawCloudLocations = []; 
-        
         let events = [];
         let currentEventId = null; 
         let currentEventName = "";
         let userRole = "viewer";   
-
         let gears = [];             
         let bbsMessages = [];
         let currentUploadedUrl = "";
@@ -420,18 +423,14 @@
                 const { data: eventData, error } = await globalThis.sb.from('events').select('*').order('date', { ascending: false });
                 if (error) throw error;
                 events = eventData || [];
-
                 const container = document.getElementById('eventListContainer');
                 document.getElementById('lblUserRole').innerText = userRole.toUpperCase();
-
                 if (events.length === 0) {
                     container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">番組ファイルがありません。</div>`;
                     showLoading(false);
                     return;
                 }
-
                 const isViewer = (userRole === 'viewer');
-
                 container.innerHTML = events.map(ev => {
                     const isActive = ev.status === 'active';
                     return `
@@ -445,14 +444,13 @@
                                 <button onclick="openEditEventModal('${ev.id}')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-yellow-500 px-2 py-1 rounded-lg border border-slate-700 font-bold transition active:scale-95">
                                     <i class="fas fa-edit"></i> 編集
                                 </button>` : ''}
-                                <span onclick="selectEventFile('${ev.id}', '${ev.name}')" class="text-[9px] font-black px-2 py-0.5 rounded cursor-pointer ${isActive ? 'bg-emerald-500/10 text-accentGreen border border-accentGreen/20 animate-pulse' : 'bg-slate-900 text-slate-600'}">
+                                <span onclick="selectEventFile('${ev.id}', '${ev.name}')" class="text-[9px] font-black px-2 py-0.5 rounded cursor-pointer ${isActive ? 'bg-emerald-500/10 text-accentGreen border border-accentGreen/20' : 'bg-slate-900 text-slate-600'}">
                                     ${isActive ? '⚡ ONLINE' : '🗄️ ARCHIVE'}
                                 </span>
                             </div>
                         </div>
                     `;
                 }).join('');
-
                 document.getElementById('pageEventSelect').classList.remove('hidden');
                 document.getElementById('mainAppContent').classList.add('hidden');
                 document.getElementById('bottomNavBar').classList.add('hidden');
@@ -468,13 +466,11 @@
             document.getElementById('newEventDate').value = today;
             document.getElementById('createEventModal').classList.remove('hidden');
         }
-
         function closeCreateEventModal() {
             document.getElementById('newEventId').value = "";
             document.getElementById('newEventName').value = "";
             document.getElementById('createEventModal').classList.add('hidden');
         }
-
         function openEditEventModal(id) {
             const ev = events.find(e => e.id === id);
             if (!ev) return;
@@ -485,10 +481,7 @@
             document.getElementById('editEventStatus').value = ev.status || "active";
             document.getElementById('editEventModal').classList.remove('hidden');
         }
-
-        function closeEditEventModal() {
-            document.getElementById('editEventModal').classList.add('hidden');
-        }
+        function closeEditEventModal() { document.getElementById('editEventModal').classList.add('hidden'); }
 
         async function updateEventFile() {
             if (!globalThis.sb) return;
@@ -496,24 +489,14 @@
             const name = document.getElementById('editEventName').value.trim();
             const date = document.getElementById('editEventDate').value;
             const status = document.getElementById('editEventStatus').value;
-
-            if (!name || !date) {
-                return alert("大会名と開催日は必須項目です。");
-            }
-
+            if (!name || !date) return alert("大会名と開催日は必須項目です。");
             showLoading(true, "UPDATING EVENT FILE...");
             try {
-                const { error } = await globalThis.sb.from('events').update({
-                    name: name, date: date, status: status
-                }).eq('id', id);
-
+                const { error } = await globalThis.sb.from('events').update({ name, date, status }).eq('id', id);
                 if (error) throw error;
                 closeEditEventModal();
                 await loadEventMenu();
-            } catch (err) {
-                alert("番組ファイルの更新に失敗: " + err.message);
-                showLoading(false);
-            }
+            } catch (err) { alert("番組ファイルの更新に失敗: " + err.message); showLoading(false); }
         }
 
         async function deleteEventFile() {
@@ -521,30 +504,19 @@
             const id = document.getElementById('editEventTargetId').value;
             const ev = events.find(e => e.id === id);
             if (!ev) return;
-
             if (userRole === 'viewer') return alert("閲覧者権限のため削除できません。");
-
-            const check1 = confirm(`🚨 警告: 大会ファイル「${ev.name}」を完全に削除しますか？\nこの操作は取り消せません。`);
-            if (!check1) return;
-
-            const check2 = confirm(`⚠️ 最終確認:\nこの大会に関連するすべてのデータ（機材配置・カスタム配置先リスト・掲示板）が同時に消去されます。本当によろしいですか？`);
-            if (!check2) return;
-
-            showLoading(true, "DELETING EVENT FILE & RELATION DATA...");
+            if (!confirm(`🚨 大会ファイル「${ev.name}」を完全に削除しますか？`)) return;
+            if (!confirm(`⚠️ 最終確認: 関連する全データが消去されます。よろしいですか？`)) return;
+            showLoading(true, "DELETING...");
             try {
                 await globalThis.sb.from('event_assignments').delete().eq('event_id', id);
                 await globalThis.sb.from('messages').delete().eq('event_id', id);
                 await globalThis.sb.from('locations').delete().eq('event_id', id);
-                const { error: errEvent } = await globalThis.sb.from('events').delete().eq('id', id);
-                if (errEvent) throw errEvent;
-
+                const { error } = await globalThis.sb.from('events').delete().eq('id', id);
+                if (error) throw error;
                 closeEditEventModal();
                 await loadEventMenu();
-                alert("番組ファイルを正常に完全削除しました。");
-            } catch (err) {
-                alert("ファイルの削除に失敗しました:\n" + err.message);
-                showLoading(false);
-            }
+            } catch (err) { alert("削除失敗: " + err.message); showLoading(false); }
         }
 
         async function createNewEventFile() {
@@ -552,153 +524,69 @@
             const id = document.getElementById('newEventId').value.trim();
             const name = document.getElementById('newEventName').value.trim();
             const date = document.getElementById('newEventDate').value;
-
-            if (!id || !name || !date) {
-                return alert("すべての必須項目を入力してください。");
-            }
-
-            if (!/^[a-zA-Z0-9_]+$/.test(id)) {
-                return alert("大会IDは半角英数字とアンダーバー(_)のみで入力してください。");
-            }
-
-            showLoading(true, "CREATING NEW EVENT FILE...");
+            if (!id || !name || !date) return alert("必須項目を入力してください。");
+            showLoading(true, "CREATING...");
             try {
-                const { error: eventErr } = await globalThis.sb.from('events').insert([
-                    { id: id, name: name, status: 'active', date: date }
-                ]);
-                if (eventErr) {
-                    if (eventErr.code === '23505') throw new Error("この大会IDは既に使われています。別のIDにしてください。");
-                    throw eventErr;
-                }
-
-                const { data: masterGears, error: gearsErr } = await globalThis.sb.from('gears').select('id');
-                if (gearsErr) throw gearsErr;
-
+                const { error } = await globalThis.sb.from('events').insert([{ id, name, status: 'active', date }]);
+                if (error) throw error;
+                const { data: masterGears } = await globalThis.sb.from('gears').select('id');
                 if (masterGears && masterGears.length > 0) {
-                    const assignRecords = masterGears.map(gear => ({
-                        event_id: id, gear_id: gear.id, location: "no assign"
-                    }));
-                    const { error: bulkErr } = await globalThis.sb.from('event_assignments').insert(assignRecords);
-                    if (bulkErr) throw bulkErr;
+                    const recs = masterGears.map(g => ({ event_id: id, gear_id: g.id, location: "no assign" }));
+                    await globalThis.sb.from('event_assignments').insert(recs);
                 }
-
                 closeCreateEventModal();
                 await loadEventMenu();
-            } catch (err) {
-                alert("番組ファイルの作成に失敗: " + err.message);
-                showLoading(false);
-            }
+            } catch (err) { alert("作成失敗: " + err.message); showLoading(false); }
         }
 
         function selectEventFile(eventId, eventName) {
             currentEventId = eventId;
             currentEventName = eventName;
             document.getElementById('lblCurrentEventName').innerText = eventName;
-
             document.getElementById('pageEventSelect').classList.add('hidden');
             document.getElementById('mainAppContent').classList.remove('hidden');
             document.getElementById('bottomNavBar').classList.remove('hidden');
-
             applyRoleRestrictions();
             switchTab('list');
-            
             fetchSupabaseData();
             initRealtimeListener();
         }
 
-        function returnToEventMenu() {
-            currentEventId = null;
-            loadEventMenu();
-        }
+        function returnToEventMenu() { currentEventId = null; loadEventMenu(); }
 
-        // データの同期取得ロジック (リアルタイム同期の心臓部)
         async function fetchSupabaseData(silent = false) {
             if (!globalThis.sb || !currentEventId) return;
-            if (!silent) showLoading(true, "LOADING TRACKING DATA...");
+            if (!silent) showLoading(true, "LOADING DATA...");
             try {
-                // 1. 配置先マスターの読込
-                const { data: locData, error: locErr } = await globalThis.sb
-                    .from('locations')
-                    .select('id, name')
-                    .eq('event_id', currentEventId)
-                    .order('created_at', { ascending: true });
-                
-                if (locErr) throw locErr;
-                
+                const { data: locData } = await globalThis.sb.from('locations').select('id, name').eq('event_id', currentEventId).order('created_at', { ascending: true });
                 rawCloudLocations = locData || [];
-                
-                // ドロップダウンリストの状態維持用の退避
-                const previousFilterValue = document.getElementById('filterLocation')?.value || 'ALL';
-
+                const prevFilter = document.getElementById('filterLocation')?.value || 'ALL';
                 locations = [...defaultLocations, ...rawCloudLocations.map(l => l.name)];
                 updateSelectBoxes();
-
-                // 絞り込み値を復元（削除されて消滅したポイントだった場合は自動でALLになる）
                 if (document.getElementById('filterLocation')) {
-                    if (locations.includes(previousFilterValue) || previousFilterValue === 'ALL') {
-                        document.getElementById('filterLocation').value = previousFilterValue;
-                    } else {
-                        document.getElementById('filterLocation').value = 'ALL';
-                    }
+                    document.getElementById('filterLocation').value = locations.includes(prevFilter) || prevFilter === 'ALL' ? prevFilter : 'ALL';
                 }
+                if (!document.getElementById('locationManagerModal').classList.contains('hidden')) renderLocationManagerList();
 
-                // 配置先管理モーダルが開いていれば中身を再描画
-                if (!document.getElementById('locationManagerModal').classList.contains('hidden')) {
-                    renderLocationManagerList();
-                }
+                const { data: assignData } = await globalThis.sb.from('event_assignments').select(`location, gears (id, name, category, num, mfr, serial, asset, attachments, image_url)`).eq('event_id', currentEventId);
+                gears = (assignData || []).filter(item => item.gears !== null).map(item => ({
+                    id: item.gears.id, name: item.gears.name, category: item.gears.category, num: item.gears.num,
+                    mfr: item.gears.mfr, serial: item.gears.serial, asset: item.gears.asset, attachments: item.gears.attachments,
+                    image_url: item.gears.image_url, location: item.location 
+                }));
 
-                // 2. 機材の割り当てデータを取得
-                const { data: assignData, error: assignErr } = await globalThis.sb
-                    .from('event_assignments')
-                    .select(`
-                        location,
-                        gears (
-                            id, name, category, num, mfr, serial, asset, attachments, image_url
-                        )
-                    `)
-                    .eq('event_id', currentEventId);
-                
-                if (assignErr) throw assignErr;
-
-                gears = (assignData || []).filter(item => item.gears !== null).map(item => {
-                    return {
-                        id: item.gears.id,
-                        name: item.gears.name,
-                        category: item.gears.category,
-                        num: item.gears.num,
-                        mfr: item.gears.mfr,
-                        serial: item.gears.serial,
-                        asset: item.gears.asset,
-                        attachments: item.gears.attachments,
-                        image_url: item.gears.image_url,
-                        location: item.location 
-                    };
-                });
-                
-                // 3. 掲示板データを取得
-                const { data: msgData, error: msgErr } = await globalThis.sb
-                    .from('messages')
-                    .select('*')
-                    .eq('event_id', currentEventId) 
-                    .order('created_at', { ascending: false });
-                if (msgErr) throw msgErr;
+                const { data: msgData } = await globalThis.sb.from('messages').select('*').eq('event_id', currentEventId).order('created_at', { ascending: false });
                 bbsMessages = msgData || [];
 
-                // 画面要素を完全に最新化
                 renderTable();
                 renderMaintenanceTable();
                 renderBBS();
                 if (!silent) document.getElementById('loadingScreen').classList.add('hidden');
-            } catch (err) {
-                logStatus("❌ 同期エラー: " + err.message);
-                showError();
-            }
+            } catch (err) { logStatus("❌ 同期エラー: " + err.message); showError(); }
         }
 
         function initRealtimeListener() {
             if (!globalThis.sb || !currentEventId) return;
-            
-            // クラウド上の変更シグナルをすべてキャッチし、自動で画面を完全更新に導く
             globalThis.sb.channel('db-assignments').on('postgres_changes', { event: '*', schema: 'public', table: 'event_assignments', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
             globalThis.sb.channel('db-messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
             globalThis.sb.channel('db-locations').on('postgres_changes', { event: '*', schema: 'public', table: 'locations', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
@@ -706,40 +594,25 @@
 
         async function changeGearLocation(gearId, newLoc) {
             if (!globalThis.sb || !currentEventId) return;
-            try {
-                const { error } = await globalThis.sb
-                    .from('event_assignments')
-                    .update({ location: newLoc })
-                    .eq('event_id', currentEventId)
-                    .eq('gear_id', gearId);
-                if (error) throw error;
-            } catch (err) { alert("配置変更失敗: " + err.message); }
+            try { await globalThis.sb.from('event_assignments').update({ location: newLoc }).eq('event_id', currentEventId).eq('gear_id', gearId); } catch (err) { alert("変更失敗: " + err.message); }
         }
 
         async function sendBBSMessage() {
             if (!globalThis.sb || !currentEventId) return;
-            const nameEl = document.getElementById('msgName');
-            const bodyEl = document.getElementById('msgBody');
-            const idEl = document.getElementById('editMsgId');
-            
-            const name = nameEl.value.trim();
-            const body = bodyEl.value.trim();
-            const editId = idEl.value;
-
-            if (!name || !body) return alert("名前とメッセージを入力してください。");
+            const name = document.getElementById('msgName').value.trim();
+            const body = document.getElementById('msgBody').value.trim();
+            const editId = document.getElementById('editMsgId').value;
+            if (!name || !body) return alert("入力が不足しています。");
             localStorage.setItem('ekiden_bbs_name', name);
-
             try {
                 if (editId) {
-                    const { error } = await globalThis.sb.from('messages').update({ name, body }).eq('id', editId);
-                    if (error) throw error;
+                    await globalThis.sb.from('messages').update({ name, body }).eq('id', editId);
                     cancelBBSEdit();
                 } else {
-                    const { error } = await globalThis.sb.from('messages').insert([{ name, body, event_id: currentEventId }]);
-                    if (error) throw error;
-                    bodyEl.value = "";
+                    await globalThis.sb.from('messages').insert([{ name, body, event_id: currentEventId }]);
+                    document.getElementById('msgBody').value = "";
                 }
-            } catch (err) { alert("❌ 送信失敗: " + err.message); }
+            } catch (err) { alert("送信失敗: " + err.message); }
         }
 
         async function addGear() {
@@ -750,214 +623,121 @@
             const location = document.getElementById('addLoc').value;
             const num = document.getElementById('addNum').value.trim();
             const mfr = document.getElementById('addMfr').value.trim();
-
-            if (!name || !id || !category) return alert("必須項目(*)を入力してください。");
-
-            showLoading(true, "REGISTERING NEW GEAR...");
+            if (!name || !id || !category) return alert("必須項目を入力してください。");
+            showLoading(true, "REGISTERING...");
             try {
-                const { error: gearErr } = await globalThis.sb.from('gears').upsert({ id, name, category, num, mfr });
-                if (gearErr) throw gearErr;
-
-                const { error: assignErr } = await globalThis.sb.from('event_assignments').insert({ event_id: currentEventId, gear_id: id, location });
-                if (assignErr) throw assignErr;
-                
-                document.getElementById('addName').value = "";
-                document.getElementById('addId').value = "";
-                document.getElementById('addCat').value = "";
-                document.getElementById('addNum').value = "";
-                document.getElementById('addMfr').value = "";
+                await globalThis.sb.from('gears').upsert({ id, name, category, num, mfr });
+                await globalThis.sb.from('event_assignments').insert({ event_id: currentEventId, gear_id: id, location });
+                document.getElementById('addName').value = ""; document.getElementById('addId').value = ""; document.getElementById('addCat').value = "";
                 switchTab('list');
-            } catch(err) {
-                alert("登録失敗: " + err.message);
-            } finally {
-                showLoading(false);
-            }
+            } catch(err) { alert("登録失敗: " + err.message); } finally { showLoading(false); }
         }
 
         async function assignExistingGear() {
             if (!globalThis.sb || !currentEventId) return;
             const gearId = document.getElementById('assignGearId').value.trim();
             const location = document.getElementById('assignLoc').value;
-
-            if(!gearId) return alert("機材IDを入力してください。");
-
-            showLoading(true, "ASSIGNING GEAR...");
+            if(!gearId) return alert("IDを入力してください。");
+            showLoading(true, "ASSIGNING...");
             try {
-                const { data, error: chkErr } = await globalThis.sb.from('gears').select('id').eq('id', gearId).single();
-                if(chkErr || !data) {
-                    throw new Error("指定された機材IDはマスターに登録されていません。");
-                }
-
-                const { data: dupData } = await globalThis.sb.from('event_assignments').select('id').eq('event_id', currentEventId).eq('gear_id', gearId);
-                if(dupData && dupData.length > 0) throw new Error("この機材は既にこの大会に登録されています。");
-
-                const { error } = await globalThis.sb.from('event_assignments').insert({ event_id: currentEventId, gear_id: gearId, location });
-                if (error) throw error;
-
+                const { data } = await globalThis.sb.from('gears').select('id').eq('id', gearId).single();
+                if(!data) throw new Error("マスター未登録のIDです。");
+                await globalThis.sb.from('event_assignments').insert({ event_id: currentEventId, gear_id: gearId, location });
                 document.getElementById('assignGearId').value = "";
                 switchTab('list');
-            } catch (err) {
-                alert(err.message);
-            } finally {
-                showLoading(false);
-            }
+            } catch (err) { alert(err.message); } finally { showLoading(false); }
         }
 
         async function saveMaintenanceData() {
             if (!globalThis.sb) return;
             const id = document.getElementById('editTargetId').value;
-            const updatedName = document.getElementById('editName').value.trim();
-            const updatedCat = document.getElementById('editCat').value.trim();
-            if (!updatedName || !updatedCat) return alert("入力が不足しています。");
-
-            showLoading(true, "SAVING TO MASTER...");
+            const name = document.getElementById('editName').value.trim();
+            const category = document.getElementById('editCat').value.trim();
+            if (!name || !category) return alert("入力が不足しています。");
+            showLoading(true, "SAVING...");
             try {
-                const { error } = await globalThis.sb.from('gears').update({
-                    name: updatedName, category: updatedCat,
-                    num: document.getElementById('editNum').value.trim(), mfr: document.getElementById('editMfr').value.trim(),
+                await globalThis.sb.from('gears').update({
+                    name, category, num: document.getElementById('editNum').value.trim(), mfr: document.getElementById('editMfr').value.trim(),
                     serial: document.getElementById('editSerial').value.trim(), asset: document.getElementById('editAsset').value.trim(),
                     attachments: document.getElementById('editAttachments').value.trim(), image_url: currentUploadedUrl
                 }).eq('id', id);
-                
-                if (error) throw error;
                 closeMaintModal();
-            } catch(err) {
-                alert(err.message);
-            } finally {
-                showLoading(false);
-            }
+            } catch(err) { alert(err.message); } finally { showLoading(false); }
         }
 
         async function deleteGearFromAssignment() {
             if (!globalThis.sb || !currentEventId) return;
             const id = document.getElementById('editTargetId').value;
-            if (confirm(`機材 ID: ${id} をこの大会の運用から除外しますか？`)) {
-                closeMaintModal(); 
-                showLoading(true, "REMOVING ASSIGNMENT...");
-                try { 
-                    const { error } = await globalThis.sb.from('event_assignments').delete().eq('event_id', currentEventId).eq('gear_id', id); 
-                    if (error) throw error; 
-                }
-                catch (err) { alert(err.message); } finally { showLoading(false); }
+            if (confirm("この大会から除外しますか？")) {
+                closeMaintModal(); showLoading(true, "REMOVING...");
+                try { await globalThis.sb.from('event_assignments').delete().eq('event_id', currentEventId).eq('gear_id', id); } catch (err) { alert(err.message); } finally { showLoading(false); }
             }
         }
 
         function applyRoleRestrictions() {
             userRole = localStorage.getItem('ekiden_user_role') || 'viewer';
-            console.log("アクセス権限:", userRole);
-
             const isAdmin = (userRole === 'admin');
             const isViewer = (userRole === 'viewer');
             const isStaff = (userRole === 'staff');
-
-            if (isViewer) {
-                if(document.getElementById('btnOpenCreateEventModal')) document.getElementById('btnOpenCreateEventModal').style.display = 'none';
-            }
-
-            if (document.getElementById('adminLocationForm')) {
-                document.getElementById('adminLocationForm').style.display = isViewer ? 'none' : 'flex';
-            }
-
-            if (document.getElementById('btnOpenLocationManager')) {
-                document.getElementById('btnOpenLocationManager').style.display = isAdmin ? 'inline-block' : 'none';
-            }
-
+            if (isViewer && document.getElementById('btnOpenCreateEventModal')) document.getElementById('btnOpenCreateEventModal').style.display = 'none';
+            if (document.getElementById('adminLocationForm')) document.getElementById('adminLocationForm').style.display = isViewer ? 'none' : 'flex';
+            if (document.getElementById('btnOpenLocationManager')) document.getElementById('btnOpenLocationManager').style.display = isAdmin ? 'inline-block' : 'none';
             if (isViewer || isStaff) {
                 if(document.getElementById('navRegister')) document.getElementById('navRegister').style.display = 'none';
                 if(document.getElementById('navMaint')) document.getElementById('navMaint').style.display = 'none';
             }
-            if (isViewer) {
-                if(document.getElementById('bbsFormContainer')) document.getElementById('bbsFormContainer').style.display = 'none';
-                globalThis.isViewerMode = true; 
-            } else {
-                globalThis.isViewerMode = false;
-            }
+            if (document.getElementById('bbsFormContainer')) document.getElementById('bbsFormContainer').style.display = isViewer ? 'none' : 'block';
+            globalThis.isViewerMode = isViewer;
         }
 
-        function openLocationManagerModal() {
-            if (userRole !== 'admin') return alert("管理者権限が必要です。");
-            renderLocationManagerList();
-            document.getElementById('locationManagerModal').classList.remove('hidden');
-        }
-
-        function closeLocationManagerModal() {
-            document.getElementById('locationManagerModal').classList.add('hidden');
-        }
+        function openLocationManagerModal() { if (userRole === 'admin') document.getElementById('locationManagerModal').classList.remove('hidden'); }
+        function closeLocationManagerModal() { document.getElementById('locationManagerModal').classList.add('hidden'); }
 
         function renderLocationManagerList() {
             const container = document.getElementById('locationManagerList');
             if (!container) return;
-            if (rawCloudLocations.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-500 py-4 text-center">追加されたカスタム配置先はありません。</p>`;
-                return;
-            }
-
+            if (rawCloudLocations.length === 0) { container.innerHTML = `<p class="text-xs text-slate-500 py-4 text-center">カスタム配置先はありません。</p>`; return; }
             container.innerHTML = rawCloudLocations.map(loc => `
                 <div class="bg-bgDark border border-borderStroke p-2.5 rounded-lg flex items-center justify-between gap-2">
                     <input type="text" value="${loc.name}" onchange="updateLocationName(${loc.id}, this.value)" class="flex-1 bg-cardBg border border-borderStroke rounded px-2 py-1 text-xs text-white focus:border-yellow-500 outline-none font-bold">
-                    <button onclick="deleteLocationPoint(${loc.id}, '${loc.name}')" class="bg-rose-950/40 hover:bg-rose-900 border border-rose-500/30 text-rose-400 p-1.5 rounded-lg text-xs transition active:scale-95 shrink-0" title="削除">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
+                    <button onclick="deleteLocationPoint(${loc.id}, '${loc.name}')" class="bg-rose-950/40 hover:bg-rose-900 border border-rose-500/30 text-rose-400 p-1.5 rounded-lg text-xs transition active:scale-95 shrink-0"><i class="fas fa-trash-alt"></i></button>
                 </div>
             `).join('');
         }
 
         async function updateLocationName(id, newName) {
             if (userRole !== 'admin') return;
-            const cleanName = newName.trim();
-            if (!cleanName) return alert("配置先名を入力してください。");
-            
-            const target = rawCloudLocations.find(l => l.id === id);
-            if (!target) return;
+            const cleanName = newName.trim(); if (!cleanName) return alert("名を入力してください。");
+            const target = rawCloudLocations.find(l => l.id === id); if (!target) return;
             const oldName = target.name;
-
             try {
-                const { error: locErr } = await globalThis.sb.from('locations').update({ name: cleanName }).eq('id', id);
-                if (locErr) throw locErr;
-
+                await globalThis.sb.from('locations').update({ name: cleanName }).eq('id', id);
                 await globalThis.sb.from('event_assignments').update({ location: cleanName }).eq('event_id', currentEventId).eq('location', oldName);
-                console.log(`📍 配置先名を ${oldName} から ${cleanName} へ変更しました。`);
-            } catch (err) {
-                alert("名称の変更に失敗しました: " + err.message);
-            }
+            } catch (err) { alert("変更失敗: " + err.message); }
         }
 
         async function deleteLocationPoint(id, name) {
             if (userRole !== 'admin') return;
-            if (!confirm(`📍 配置先「${name}」を完全に削除しますか？\n現在このポイントに配置されている機材は、自動的に「no assign」へと戻ります。`)) return;
-
-            showLoading(true, "DELETING LOCATION...");
+            if (!confirm(`配置先「${name}」を削除しますか？`)) return;
+            showLoading(true, "DELETING...");
             try {
                 await globalThis.sb.from('event_assignments').update({ location: 'no assign' }).eq('event_id', currentEventId).eq('location', name);
-                const { error } = await globalThis.sb.from('locations').delete().eq('id', id);
-                if (error) throw error;
-            } catch (err) {
-                alert("配置先の削除に失敗しました: " + err.message);
-            } finally {
-                showLoading(false);
-            }
+                await globalThis.sb.from('locations').delete().eq('id', id);
+            } catch (err) { alert("削除失敗: " + err.message); } finally { showLoading(false); }
         }
 
         function renderTable() {
-            const container = document.getElementById('gearCardList');
-            if (!container) return;
+            const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
             const filterLoc = document.getElementById('filterLocation').value;
             document.getElementById('totalBadge').innerText = gears.length;
 
             let displayData = gears.filter(gear => {
-                const matchesKeyword = (gear.name && gear.name.toLowerCase().includes(searchKeyword)) || 
-                                       (gear.category && gear.category.toLowerCase().includes(searchKeyword)) ||
-                                       (gear.id && gear.id.toLowerCase().includes(searchKeyword));
+                const matchesKeyword = (gear.name && gear.name.toLowerCase().includes(searchKeyword)) || (gear.category && gear.category.toLowerCase().includes(searchKeyword)) || (gear.id && gear.id.toLowerCase().includes(searchKeyword));
                 const matchesLocation = filterLoc === 'ALL' || gear.location === filterLoc;
                 return matchesKeyword && matchesLocation;
             });
-
-            if (displayData.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-6 text-xs">該当機材なし</div>`;
-                return;
-            }
-
+            if (displayData.length === 0) { container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-6 text-xs">該当機材なし</div>`; return; }
             container.innerHTML = displayData.map(gear => `
                 <div class="bg-cardBg border border-borderStroke rounded-xl p-3 flex flex-col justify-between gap-2 shadow-md hover:border-accentGreen/40 transition duration-150 cursor-pointer" onclick="openMaintModal('${gear.id}')">
                     <div class="flex items-start justify-between gap-2">
@@ -980,44 +760,30 @@
         }
 
         function renderBBS() {
-            const container = document.getElementById('bbsTimeline');
-            if (!container) return;
-
-            if (bbsMessages.length === 0) {
-                container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">投稿はありません。</div>`;
-                return;
-            }
-
+            const container = document.getElementById('bbsTimeline'); if (!container) return;
+            if (bbsMessages.length === 0) { container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">投稿はありません。</div>`; return; }
             container.innerHTML = bbsMessages.map(msg => {
                 const date = new Date(msg.created_at);
                 const timeStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-                
                 return `
                     <div class="bg-cardBg border border-borderStroke p-2.5 rounded-xl space-y-1 relative">
-                        <div class="flex items-center justify-between border-b border-borderStroke/40 pb-1 gap-2 flex-wrap sm:flex-nowrap">
+                        <div class="flex items-center justify-between border-b border-borderStroke/40 pb-1 gap-2 flex-wrap">
                             <div class="flex items-center gap-2 min-w-0 truncate">
-                                <span class="text-accentGreen font-bold text-xs truncate"><i class="fas fa-user-circle mr-0.5"></i>${msg.name}</span>
+                                <span class="text-accentGreen font-bold text-xs truncate">${msg.name}</span>
                                 <span class="text-[9px] text-slate-500 font-mono shrink-0">${timeStr}</span>
                             </div>
-                            ${!globalThis.isViewerMode ? `
-                            <button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-yellow-400 border border-borderStroke px-1.5 py-0.5 rounded flex items-center transition shrink-0">
-                                <span>編集</span>
-                            </button>` : ''}
+                            ${!globalThis.isViewerMode ? `<button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 text-slate-400 border border-borderStroke px-1.5 py-0.5 rounded transition">編集</button>` : ''}
                         </div>
-                        <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight select-text pt-0.5">${msg.body}</p>
+                        <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight pt-0.5">${msg.body}</p>
                     </div>
                 `;
             }).join('');
         }
 
         function renderMaintenanceTable() {
-            const tbody = document.getElementById('maintTableBody');
-            if(!tbody) return;
+            const tbody = document.getElementById('maintTableBody'); if(!tbody) return;
             const keyword = document.getElementById('maintSearchKeyword').value.toLowerCase();
-            let displayData = gears.filter(gear => {
-                return (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword));
-            });
-
+            let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
             tbody.innerHTML = displayData.map(gear => `
                 <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
                     <td class="p-2 font-mono text-slate-400 font-bold">${gear.id}</td>
@@ -1029,8 +795,7 @@
         }
 
         function openMaintModal(id) {
-            const gear = gears.find(g => String(g.id) === String(id));
-            if (!gear) return;
+            const gear = gears.find(g => String(g.id) === String(id)); if (!gear) return;
             document.getElementById('editTargetId').value = gear.id;
             document.getElementById('editIdDisplay').innerText = gear.id;
             document.getElementById('modalTitle').innerText = `機材詳細 [ID: ${gear.id}]`;
@@ -1044,33 +809,13 @@
             currentUploadedUrl = gear.image_url || "";
             refreshModalImagePreview();
 
-            if (globalThis.isViewerMode) {
-                document.getElementById('editName').disabled = true;
-                document.getElementById('editCat').disabled = true;
-                document.getElementById('editNum').disabled = true;
-                document.getElementById('editMfr').disabled = true;
-                document.getElementById('editSerial').disabled = true;
-                document.getElementById('editAsset').disabled = true;
-                document.getElementById('editAttachments').disabled = true;
-                document.getElementById('btnCameraUpload').style.display = 'none';
-                document.getElementById('btnModalDelete').style.display = 'none';
-                document.getElementById('btnModalSave').style.display = 'none';
-            } else {
-                document.getElementById('editName').disabled = false;
-                document.getElementById('editCat').disabled = false;
-                document.getElementById('editNum').disabled = false;
-                document.getElementById('editMfr').disabled = false;
-                document.getElementById('editSerial').disabled = false;
-                document.getElementById('editAsset').disabled = false;
-                document.getElementById('editAttachments').disabled = false;
-                document.getElementById('btnCameraUpload').style.display = 'inline-block';
-                document.getElementById('btnModalDelete').style.display = 'inline-block';
-                document.getElementById('btnModalSave').style.display = 'inline-block';
-            }
-
+            const fields = ['editName', 'editCat', 'editNum', 'editMfr', 'editSerial', 'editAsset', 'editAttachments'];
+            fields.forEach(f => document.getElementById(f).disabled = globalThis.isViewerMode);
+            document.getElementById('btnCameraUpload').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
+            document.getElementById('btnModalDelete').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
+            document.getElementById('btnModalSave').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
             document.getElementById('maintModal').classList.remove('hidden');
         }
-
         function closeMaintModal() { document.getElementById('maintModal').classList.add('hidden'); }
 
         function refreshModalImagePreview() {
@@ -1084,69 +829,49 @@
                 if(deleteBtn) deleteBtn.classList.add('hidden');
             }
         }
-
         function deleteGearImage() { currentUploadedUrl = ""; refreshModalImagePreview(); }
 
         async function handleImageUpload(event) {
             if (!globalThis.sb) return;
-            const file = event.target.files[0];
-            if (!file) return;
-            showLoading(true, "UPLOADING IMAGE...");
+            const file = event.target.files[0]; if (!file) return;
+            showLoading(true, "UPLOADING...");
             try {
                 const filePath = `${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
-                const { error } = await globalThis.sb.storage.from('gear-images').upload(filePath, file);
-                if (error) throw error;
-                const { data: urlData } = globalThis.sb.storage.from('gear-images').getPublicUrl(filePath);
-                currentUploadedUrl = urlData.publicUrl;
-                refreshModalImagePreview();
+                await globalThis.sb.storage.from('gear-images').upload(filePath, file);
+                const { data } = globalThis.sb.storage.from('gear-images').getPublicUrl(filePath);
+                currentUploadedUrl = data.publicUrl; refreshModalImagePreview();
             } catch (err) { alert(err.message); } finally { showLoading(false); }
         }
 
         function startBBSEdit(id) {
-            const msg = bbsMessages.find(m => String(m.id) === String(id));
-            if (!msg) return;
-
+            const msg = bbsMessages.find(m => String(m.id) === String(id)); if (!msg) return;
             document.getElementById('editMsgId').value = msg.id;
             document.getElementById('msgName').value = msg.name || "";
             document.getElementById('msgBody').value = msg.body || "";
-            
             document.getElementById('bbsFormContainer').className = "bg-cardBg border border-yellow-500/50 p-3 rounded-xl shrink-0 space-y-2 transition-colors duration-200";
-            document.getElementById('bbsFormTitle').className = "text-[11px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5";
             document.getElementById('bbsFormTitle').innerHTML = `<i class="fas fa-edit animate-pulse"></i> 投稿メッセージを編集・上書き中`;
-            document.getElementById('btnBBSSubmit').className = "bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition shrink-0";
+            document.getElementById('btnBBSSubmit').className = "bg-yellow-500 text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition shrink-0";
             document.getElementById('btnBBSSubmit').innerHTML = `保存`;
             document.getElementById('btnCancelEdit').classList.remove('hidden');
             document.getElementById('msgBody').focus();
         }
 
         function cancelBBSEdit() {
-            document.getElementById('editMsgId').value = "";
-            document.getElementById('msgBody').value = "";
-            
+            document.getElementById('editMsgId').value = ""; document.getElementById('msgBody').value = "";
             document.getElementById('bbsFormContainer').className = "bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2 transition-colors duration-200";
-            document.getElementById('bbsFormTitle').className = "text-[11px] font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5";
             document.getElementById('bbsFormTitle').innerHTML = `<i class="fas fa-comment-dots"></i> 現場全体へメッセージを一斉送信`;
-            document.getElementById('btnBBSSubmit').className = "bg-accentGreen hover:bg-emerald-600 text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition shrink-0";
+            document.getElementById('btnBBSSubmit').className = "bg-accentGreen text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition shrink-0";
             document.getElementById('btnBBSSubmit').innerHTML = `送信`;
             document.getElementById('btnCancelEdit').classList.add('hidden');
-            
             const cachedName = localStorage.getItem('ekiden_bbs_name');
             if(cachedName) document.getElementById('msgName').value = cachedName;
         }
 
         function showLoading(show, text = "") {
             const screen = document.getElementById('loadingScreen');
-            if (show) {
-                document.getElementById('loadingText').innerText = text;
-                screen.classList.remove('hidden');
-            } else { screen.classList.add('hidden'); }
+            if (show) { document.getElementById('loadingText').innerText = text; screen.classList.remove('hidden'); } else { screen.classList.add('hidden'); }
         }
-
-        function showError() {
-            document.getElementById('loadingSpinner').classList.add('hidden');
-            document.getElementById('errorDiagnostic').classList.remove('hidden');
-        }
-
+        function showError() { document.getElementById('loadingSpinner').classList.add('hidden'); document.getElementById('errorDiagnostic').classList.remove('hidden'); }
         function forceOpenApp() { document.getElementById('loadingScreen').classList.add('hidden'); renderTable(); }
 
         function switchTab(tab) {
@@ -1154,7 +879,6 @@
             document.getElementById('pageBBS').classList.toggle('hidden', tab !== 'bbs');
             document.getElementById('pageRegister').classList.toggle('hidden', tab !== 'register');
             document.getElementById('pageMaintenance').classList.toggle('hidden', tab !== 'maintenance');
-
             document.getElementById('navList').className = `flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'list' ? 'text-accentGreen' : 'text-gray-500'}`;
             document.getElementById('navBBS').className = `flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'bbs' ? 'text-accentGreen' : 'text-gray-500'}`;
             document.getElementById('navRegister').className = `flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'register' ? 'text-accentGreen' : 'text-gray-500'}`;
@@ -1164,7 +888,6 @@
         function updateSelectBoxes() {
             const optionsAll = '<option value="ALL">📍 すべて</option>' + locations.map(loc => `<option value="${loc}">📍 ${loc}</option>`).join('');
             const optionsPure = locations.map(loc => `<option value="${loc}">📍 ${loc}</option>`).join('');
-            
             if (document.getElementById('filterLocation')) document.getElementById('filterLocation').innerHTML = optionsAll;
             if (document.getElementById('addLoc')) document.getElementById('addLoc').innerHTML = optionsPure;
             if (document.getElementById('assignLoc')) document.getElementById('assignLoc').innerHTML = optionsPure;
@@ -1172,32 +895,17 @@
 
         async function addLocationPoint() {
             if (userRole === 'viewer') return alert("閲覧者権限のため追加できません。");
-
-            const input = document.getElementById('newPointName');
-            const name = input.value.trim();
+            const input = document.getElementById('newPointName'); const name = input.value.trim();
             if (!name) return alert("配置先（ポイント名）を入力してください。");
             if (locations.includes(name)) return alert("その配置先はすでに登録されています。");
-            
-            showLoading(true, "ADDING NEW LOCATION...");
-            try {
-                const { error } = await globalThis.sb
-                    .from('locations')
-                    .insert([{ event_id: currentEventId, name: name }]);
-                
-                if (error) throw error;
-                input.value = "";
-            } catch (err) {
-                alert("配置先の追加に失敗しました: " + err.message);
-            } finally {
-                showLoading(false);
-            }
+            showLoading(true, "ADDING...");
+            try { await globalThis.sb.from('locations').insert([{ event_id: currentEventId, name }]); input.value = ""; } catch (err) { alert("追加失敗: " + err.message); } finally { showLoading(false); }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             applyRoleRestrictions();
             const cachedName = localStorage.getItem('ekiden_bbs_name');
             if(cachedName) document.getElementById('msgName').value = cachedName;
-            
             document.getElementById('loadingScreen').classList.add('hidden');
             loadEventMenu();
         });
