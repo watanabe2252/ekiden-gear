@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>⚡ 駅伝・マラソン機材管理 ＆ リアルタイムクラウド</title>
     
+    <!-- 📱 iOS (Safari) をアプリライク（スタンドアロン）にするための必須設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="駅伝機材管理">
     
+    <!-- 🤖 Android用の設定 -->
     <meta name="mobile-web-app-capable" content="yes">
     
     <script>
@@ -44,12 +46,10 @@
         ::-webkit-scrollbar-thumb { background: #1e2538; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #10b981; }
         
-        /* iOSのノッチ（上部バー）対応のセーフエリア padding */
         body {
             padding-top: calc(env(safe-area-inset-top) + 8px);
         }
 
-        /* 日本語の不自然な改行を防ぎ、単語の区切りで改行させる */
         .keep-word {
             word-break: keep-all;
             overflow-wrap: break-word;
@@ -58,6 +58,7 @@
 </head>
 <body class="bg-bgDark text-slate-100 h-[100svh] max-h-[100svh] overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
 
+    <!-- ローディング画面 -->
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
         <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
         <p id="loadingText" class="text-[10px] text-slate-400 font-mono tracking-widest">CONNECTING TO SUPABASE...</p>
@@ -70,6 +71,7 @@
         </div>
     </div>
 
+    <!-- 📁 大会（番組ファイル）選択・目次画面 -->
     <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center">
         <div class="max-w-md w-full bg-cardBg border border-borderStroke p-5 rounded-2xl shadow-2xl space-y-4">
             <div class="border-b border-borderStroke pb-3 flex justify-between items-center gap-2">
@@ -86,11 +88,13 @@
             <div id="eventListContainer" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1"></div>
             <div class="flex justify-between items-center pt-2 border-t border-borderStroke/60 gap-2 whitespace-nowrap">
                 <p class="text-[9px] text-slate-600 font-mono">ROLE: <span id="lblUserRole" class="text-slate-400 font-bold">---</span></p>
-                <button onclick="handleLogout()" class="text-[10px] text-rose-400 hover:text-rose-300 font-bold flex items-center gap-1"><i class="fas fa-sign-out-alt"></i> システム離脱</button>
+                <!-- 💡 ログアウトに表記修正 -->
+                <button onclick="handleLogout()" class="text-[10px] text-rose-400 hover:text-rose-300 font-bold flex items-center gap-1"><i class="fas fa-sign-out-alt"></i> ログアウト</button>
             </div>
         </div>
     </div>
 
+    <!-- 新規番組ファイル作成モーダル -->
     <div id="createEventModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeCreateEventModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-sm rounded-xl overflow-hidden shadow-2xl p-4 space-y-4" onclick="event.stopPropagation()">
             <div class="border-b border-borderStroke pb-2 flex justify-between items-center">
@@ -119,6 +123,7 @@
         </div>
     </div>
 
+    <!-- 📁 番組ファイル編集・削除用モーダル -->
     <div id="editEventModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeEditEventModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-sm rounded-xl overflow-hidden shadow-2xl p-4 space-y-4" onclick="event.stopPropagation()">
             <div class="border-b border-borderStroke pb-2 flex justify-between items-center">
@@ -159,6 +164,7 @@
         </div>
     </div>
 
+    <!-- 📍 配置先管理モーダル -->
     <div id="locationManagerModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeLocationManagerModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-md rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]" onclick="event.stopPropagation()">
             <div class="bg-slate-900 px-4 py-3 border-b border-borderStroke flex justify-between items-center shrink-0">
@@ -172,8 +178,10 @@
         </div>
     </div>
 
+    <!-- メインコンテンツコンテナ -->
     <div id="mainAppContent" class="max-w-6xl mx-auto w-full flex flex-col h-full overflow-hidden space-y-2.5 hidden">
         
+        <!-- ヘッダーエリア -->
         <div class="flex justify-between items-center border-b border-borderStroke pb-1.5 shrink-0 gap-2">
             <div class="min-w-0">
                 <h1 class="text-sm md:text-lg font-black text-white flex items-center gap-1.5 truncate">
@@ -189,12 +197,14 @@
                 <div class="bg-cardBg border border-borderStroke px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-400">
                     配置: <span id="totalBadge" class="text-white font-black">0</span> 点
                 </div>
+                <!-- 💡 ログアウトに表記修正 -->
                 <button onclick="handleLogout()" class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-full transition active:scale-95 flex items-center gap-1">
-                    <i class="fas fa-sign-out-alt"></i> 離退
+                    <i class="fas fa-sign-out-alt"></i> ログアウト
                 </button>
             </div>
         </div>
 
+        <!-- 1. 機材配置タブページ -->
         <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl flex flex-col md:flex-row gap-2 items-center justify-between shrink-0">
                 <div class="flex flex-row w-full md:w-auto gap-1.5 items-center flex-1">
@@ -226,6 +236,7 @@
             </div>
         </div>
 
+        <!-- 2. 現場掲示板タブページ -->
         <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 hidden">
             <div id="bbsFormContainer" class="bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2 transition-colors duration-200">
                 <div class="flex justify-between items-center">
@@ -246,6 +257,7 @@
             </div>
         </div>
 
+        <!-- 3. データ登録タブページ -->
         <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-24 overflow-y-auto">
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-3">
                 <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-plus-circle"></i> 新規機材の登録</h3>
@@ -298,6 +310,7 @@
             </div>
         </div>
 
+        <!-- 4. 管理タブページ -->
         <div id="pageMaintenance" class="space-y-2 hidden flex-1 flex flex-col overflow-hidden">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl shrink-0">
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
@@ -318,6 +331,7 @@
         </div>
     </div>
 
+    <!-- 詳細メンテナンスモーダル -->
     <div id="maintModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeMaintModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-xl rounded-xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col" onclick="event.stopPropagation()">
             <div class="bg-slate-900 px-4 py-3 border-b border-borderStroke flex justify-between items-center shrink-0">
@@ -387,6 +401,7 @@
         </div>
     </div>
 
+    <!-- ボトムタブナビゲーション -->
     <div id="bottomNavBar" class="fixed bottom-0 left-0 right-0 bg-cardBg/95 backdrop-blur-md border-t border-borderStroke pt-2.5 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-around z-30 shadow-2xl hidden px-1">
         <button id="navList" onclick="switchTab('list')" class="flex flex-col items-center gap-0.5 text-accentGreen text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-layer-group text-sm md:text-base"></i><span>機材配置</span></button>
         <button id="navBBS" onclick="switchTab('bbs')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-comments text-sm md:text-base"></i><span>現場掲示板</span></button>
@@ -394,6 +409,7 @@
         <button id="navMaint" onclick="switchTab('maintenance')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-tools text-sm md:text-base"></i><span>管理設定</span></button>
     </div>
 
+    <!-- 内部ロジックシステムJavaScript -->
     <script>
         globalThis.sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const defaultLocations = ["no assign"];
@@ -414,7 +430,7 @@
         }
 
         function handleLogout() {
-            if(confirm("システムから安全に離脱（ログアウト）しますか？")) {
+            if(confirm("システムから安全にログアウトしますか？")) {
                 localStorage.removeItem('ekiden_secure_session');
                 localStorage.removeItem('ekiden_user_role');
                 window.location.href = "login.html";
@@ -710,24 +726,47 @@
             `).join('');
         }
 
+        // 💡 配置先の編集・名称変更の同期バグを完全修正
         async function updateLocationName(id, newName) {
             if (userRole !== 'admin') return;
-            const cleanName = newName.trim(); if (!cleanName) return alert("名を入力してください。");
-            const target = rawCloudLocations.find(l => l.id === id); if (!target) return;
+            const cleanName = newName.trim(); 
+            if (!cleanName) return alert("配置先名を入力してください。");
+            
+            const target = rawCloudLocations.find(l => l.id === id); 
+            if (!target) return;
             const oldName = target.name;
+            
             try {
-                await globalThis.sb.from('locations').update({ name: cleanName }).eq('id', id);
+                // 1. locations マスターテーブルの該当レコードを更新
+                const { error: locUpdateErr } = await globalThis.sb.from('locations').update({ name: cleanName }).eq('id', id);
+                if (locUpdateErr) throw locUpdateErr;
+
+                // 2. 現在の大会アサインデータ (event_assignments) のうち、古い名称になっている場所をすべて上書き更新
                 await globalThis.sb.from('event_assignments').update({ location: cleanName }).eq('event_id', currentEventId).eq('location', oldName);
-            } catch (err) { alert("変更失敗: " + err.message); }
+                
+                // 3. ローカルの配列情報を直接書き換え、再取得を待たずに即時反映準備
+                target.name = cleanName;
+                const idx = locations.indexOf(oldName);
+                if (idx !== -1) locations[idx] = cleanName;
+
+                // 4. セレクトボックスと描画状態を一斉更新
+                updateSelectBoxes();
+                renderTable();
+                console.log(`📍 配置先「${oldName}」を「${cleanName}」へ正常に更新し、アサイン機材を同期しました。`);
+            } catch (err) { 
+                alert("配置先名の変更に失敗しました: " + err.message); 
+            }
         }
 
         async function deleteLocationPoint(id, name) {
             if (userRole !== 'admin') return;
-            if (!confirm(`配置先「${name}」を削除しますか？`)) return;
+            if (!confirm(`配置先「${name}」を削除しますか？\nこの配置先に指定されている機材は自動的に「no assign」に戻ります。`)) return;
             showLoading(true, "DELETING...");
             try {
                 await globalThis.sb.from('event_assignments').update({ location: 'no assign' }).eq('event_id', currentEventId).eq('location', name);
                 await globalThis.sb.from('locations').delete().eq('id', id);
+                // 削除後はリアルタイムリスナー経由または明示的な再取得で完全クリーンアップ
+                await fetchSupabaseData(true);
             } catch (err) { alert("削除失敗: " + err.message); } finally { showLoading(false); }
         }
 
