@@ -46,20 +46,16 @@
 </head>
 <body class="bg-bgDark text-slate-100 h-[100svh] max-h-[100svh] overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
 
-    <!-- ローディング画面 -->
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
         <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
         <p id="loadingText" class="text-[10px] text-slate-400 font-mono tracking-widest">SYNCHRONIZING CLOUD DATA...</p>
         <div id="errorDiagnostic" class="hidden max-w-md w-full bg-slate-900 border border-borderStroke p-4 rounded-xl text-left space-y-2 mt-1">
-            <p class="text-accentGreen font-black text-xs flex items-center gap-1.5"><i class="fas fa-terminal"></i> 同期シグナルログ</p>
-            <div class="bg-bgDark border border-borderStroke p-2 rounded-lg font-mono text-[10px] text-slate-300 break-all h-28 overflow-y-auto" id="errorDetails"></div>
-            <button onclick="forceOpenApp()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-bgDark font-black text-xs py-2 rounded-lg transition shadow-lg">
-                アプリ画面を強制展開
-            </button>
+            <p class="text-accentGreen font-black text-xs flex items-center gap-1.5"><i class="fas fa-terminal"></i> 同期ログ</p>
+            <div class="bg-bgDark border border-borderStroke p-2 rounded-lg font-mono text-[10px] text-slate-300 break-all h-24 overflow-y-auto" id="errorDetails"></div>
+            <button onclick="forceOpenApp()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-bgDark font-black text-xs py-2 rounded-lg transition shadow-lg">アプリ画面を展開</button>
         </div>
     </div>
 
-    <!-- 大会ファイル目次 -->
     <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center">
         <div class="max-w-md w-full bg-cardBg border border-borderStroke p-5 rounded-2xl shadow-2xl space-y-4">
             <div class="border-b border-borderStroke pb-3 flex justify-between items-center gap-2">
@@ -81,7 +77,33 @@
         </div>
     </div>
 
-    <!-- 配置先管理モーダル -->
+    <div id="createEventModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeCreateEventModal()">
+        <div class="bg-cardBg border border-borderStroke w-full max-w-sm rounded-xl overflow-hidden p-4 space-y-4" onclick="event.stopPropagation()">
+            <div class="border-b border-borderStroke pb-2 flex justify-between items-center">
+                <h3 class="text-xs font-black text-white flex items-center gap-1.5 uppercase"><i class="fas fa-folder-plus text-accentGreen"></i> 新規番組ファイルの作成</h3>
+                <button onclick="closeCreateEventModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">大会ID (event_id) *</label>
+                    <input type="text" id="newEventId" placeholder="例: hako_ekiden_2027" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-white font-mono outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">大会名 *</label>
+                    <input type="text" id="newEventName" placeholder="例: 第103回 箱根駅伝機材管理" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">開催日 *</label>
+                    <input type="date" id="newEventDate" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-white outline-none">
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeCreateEventModal()" class="flex-1 bg-slate-800 text-gray-300 py-1.5 rounded-lg text-xs">キャンセル</button>
+                <button onclick="createNewEventFile()" class="flex-1 bg-accentGreen text-bgDark font-black py-1.5 rounded-lg text-xs">作成</button>
+            </div>
+        </div>
+    </div>
+
     <div id="locationManagerModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeLocationManagerModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-md rounded-xl flex flex-col max-h-[85vh]" onclick="event.stopPropagation()">
             <div class="bg-slate-900 px-4 py-3 border-b border-borderStroke flex justify-between items-center">
@@ -95,10 +117,8 @@
         </div>
     </div>
 
-    <!-- メインコンテンツ -->
     <div id="mainAppContent" class="max-w-6xl mx-auto w-full flex flex-col h-full overflow-hidden space-y-2.5 hidden">
         
-        <!-- ヘッダー -->
         <div class="flex justify-between items-center border-b border-borderStroke pb-1.5 shrink-0 gap-2">
             <div class="min-w-0">
                 <h1 class="text-sm md:text-lg font-black text-white flex items-center gap-1.5 truncate">
@@ -117,10 +137,10 @@
                 <div class="bg-cardBg border border-borderStroke px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-400">
                     配置: <span id="totalBadge" class="text-white font-black">0</span> 点
                 </div>
+                <button onclick="handleLogout()" class="bg-rose-950/40 border border-rose-500/30 text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-full transition">ログアウト</button>
             </div>
         </div>
 
-        <!-- 機材配置ページ -->
         <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl flex flex-col md:flex-row gap-2 items-center justify-between shrink-0">
                 <div class="flex flex-row w-full md:w-auto gap-1.5 items-center flex-1">
@@ -140,7 +160,6 @@
             </div>
         </div>
 
-        <!-- 現場掲示板ページ -->
         <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 hidden">
             <div id="bbsFormContainer" class="bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2">
                 <div class="flex flex-col sm:flex-row gap-2">
@@ -154,7 +173,6 @@
             </div>
         </div>
 
-        <!-- データ登録ページ -->
         <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-24 overflow-y-auto">
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-3">
                 <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider">⚡ 新規機材の登録</h3>
@@ -173,9 +191,25 @@
                 <button onclick="addGear()" class="w-full bg-accentGreen text-bgDark font-black text-xs py-2 rounded-lg">マスター追加 ＆ 大会へ紐付け</button>
             </div>
         </div>
+
+        <div id="pageMaintenance" class="space-y-2 hidden flex-1 flex flex-col overflow-hidden">
+            <div class="bg-cardBg border border-borderStroke p-2 rounded-xl shrink-0">
+                <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white">
+            </div>
+            <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 pb-24 shadow-xl">
+                <table class="w-full text-left border-collapse table-fixed">
+                    <thead>
+                        <tr class="bg-slate-900 border-b border-borderStroke text-slate-400 text-[10px] font-bold sticky top-0">
+                            <th class="p-2 w-[30%]">機材ID</th>
+                            <th class="p-2 w-[70%]">機材名</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintTableBody" class="divide-y divide-borderStroke text-xs"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <!-- 詳細モーダル -->
     <div id="maintModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeMaintModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-xl rounded-xl overflow-hidden shadow-2xl p-4 space-y-3 text-xs" onclick="event.stopPropagation()">
             <h2 id="modalTitle" class="text-sm font-black text-white">機材詳細情報</h2>
@@ -187,21 +221,20 @@
                 <input type="text" id="editMfr" placeholder="メーカー" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-white">
             </div>
             <div class="flex gap-1.5 justify-end pt-2">
-                <button onclick="deleteGearFromAssignment()" class="text-rose-500 mr-auto font-bold"><i class="fas fa-trash-alt"></i> 大会から外す</button>
+                <button id="btnModalDelete" onclick="deleteGearFromAssignment()" class="text-rose-500 mr-auto font-bold"><i class="fas fa-trash-alt"></i> 大会から外す</button>
                 <button onclick="closeMaintModal()" class="bg-slate-800 text-gray-300 px-3 py-1.5 rounded-lg">閉じる</button>
-                <button onclick="saveMaintenanceData()" class="bg-yellow-500 text-bgDark font-black px-3 py-1.5 rounded-lg">変更保存</button>
+                <button id="btnModalSave" onclick="saveMaintenanceData()" class="bg-yellow-500 text-bgDark font-black px-3 py-1.5 rounded-lg">変更保存</button>
             </div>
         </div>
     </div>
 
-    <!-- ボトムナビ -->
     <div id="bottomNavBar" class="fixed bottom-0 left-0 right-0 bg-cardBg/95 border-t border-borderStroke pt-2.5 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-around z-30 hidden">
         <button id="navList" onclick="switchTab('list')" class="flex flex-col items-center text-accentGreen text-[9px] font-bold flex-1"><i class="fas fa-layer-group text-sm"></i><span>機材配置</span></button>
         <button id="navBBS" onclick="switchTab('bbs')" class="flex flex-col items-center text-slate-500 text-[9px] font-bold flex-1"><i class="fas fa-comments text-sm"></i><span>現場掲示板</span></button>
         <button id="navRegister" onclick="switchTab('register')" class="flex flex-col items-center text-slate-500 text-[9px] font-bold flex-1"><i class="fas fa-edit text-sm"></i><span>データ登録</span></button>
+        <button id="navMaint" onclick="switchTab('maintenance')" class="flex flex-col items-center text-slate-500 text-[9px] font-bold flex-1"><i class="fas fa-tools text-sm"></i><span>管理設定</span></button>
     </div>
 
-    <!-- 内部ロジックシステム -->
     <script>
         globalThis.sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const defaultLocations = ["no assign"];
@@ -209,7 +242,7 @@
         let rawCloudLocations = []; 
         let events = [];
         let currentEventId = null; 
-        let userRole = "viewer";   
+        let userRole = "admin"; // 💡 ロール判定の完全復旧用
         let gears = [];             
         let bbsMessages = [];
 
@@ -221,11 +254,15 @@
 
         function handleLogout() {
             localStorage.removeItem('ekiden_secure_session');
+            localStorage.removeItem('ekiden_user_role');
             window.location.href = "login.html";
         }
 
         async function loadEventMenu() {
             if (!globalThis.sb) return;
+            // 💡 ログイン時に保存された役割（Role）をここで確実に再適用
+            userRole = localStorage.getItem('ekiden_user_role') || 'admin';
+            
             document.getElementById('loadingScreen').classList.remove('hidden');
             try {
                 const { data, error } = await globalThis.sb.from('events').select('*').order('date', { ascending: false });
@@ -241,9 +278,30 @@
                 document.getElementById('pageEventSelect').classList.remove('hidden');
                 document.getElementById('loadingScreen').classList.add('hidden');
             } catch (err) {
-                logStatus("❌ ロード失敗: " + err.message);
+                logStatus("❌ 大会一覧ロード失敗: " + err.message);
                 document.getElementById('errorDiagnostic').classList.remove('hidden');
             }
+        }
+
+        function openCreateEventModal() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('newEventDate').value = today;
+            document.getElementById('createEventModal').classList.remove('hidden');
+        }
+        function closeCreateEventModal() { document.getElementById('createEventModal').classList.add('hidden'); }
+
+        async function createNewEventFile() {
+            if (!globalThis.sb) return;
+            const id = document.getElementById('newEventId').value.trim();
+            const name = document.getElementById('newEventName').value.trim();
+            const date = document.getElementById('newEventDate').value;
+            if (!id || !name || !date) return alert("すべて入力してください。");
+            try {
+                const { error } = await globalThis.sb.from('events').insert([{ id, name, status: 'active', date }]);
+                if (error) throw error;
+                closeCreateEventModal();
+                await loadEventMenu();
+            } catch (err) { alert("作成失敗: " + err.message); }
         }
 
         function selectEventFile(eventId, eventName) {
@@ -259,34 +317,28 @@
 
         function returnToEventMenu() { currentEventId = null; loadEventMenu(); }
 
-        // 💡 100%安全：リレーションを一切破棄し、フロント側で完全手動マージする超強硬ロジック
+        // 💡 安定稼働の非リレーション・手動高速マージ方式
         async function fetchSupabaseData(silent = false) {
             if (!globalThis.sb || !currentEventId) return;
             if (!silent) document.getElementById('loadingScreen').classList.remove('hidden');
-            logStatus(`🔄 完全非リレーション同期を実行中...`);
 
             try {
-                // 1. 配置先（locations）の取得
                 const { data: locData } = await globalThis.sb.from('locations').select('*').eq('event_id', currentEventId);
                 rawCloudLocations = locData || [];
                 locations = [...defaultLocations, ...rawCloudLocations.map(l => l.name)];
                 updateSelectBoxes();
 
-                // 2. event_assignments（アサイン単体）を取得
                 const { data: assignments, error: assignErr } = await globalThis.sb.from('event_assignments').select('location, gear_id').eq('event_id', currentEventId);
                 if (assignErr) throw assignErr;
 
-                // 3. gears（マスター機材単体）を取得
                 const { data: masterGears, error: gearErr } = await globalThis.sb.from('gears').select('*');
                 if (gearErr) throw gearErr;
 
-                // マスター機材を高速検索できるようにMap化
                 const gearMap = new Map();
                 if (masterGears) {
                     masterGears.forEach(g => gearMap.set(String(g.id), g));
                 }
 
-                // 4. 手動マージを実行（リレーションエラーを永久に回避）
                 gears = [];
                 if (assignments) {
                     assignments.forEach(item => {
@@ -295,44 +347,36 @@
 
                         if (matchedMaster) {
                             gears.push({
-                                id: matchedMaster.id,
-                                name: matchedMaster.name,
-                                category: matchedMaster.category,
-                                num: matchedMaster.num || "-",
-                                mfr: matchedMaster.mfr || "-",
-                                location: item.location || "no assign"
+                                id: matchedMaster.id, name: matchedMaster.name, category: matchedMaster.category,
+                                num: matchedMaster.num || "-", mfr: matchedMaster.mfr || "-", location: item.location || "no assign"
                             });
                         } else {
-                            // 万が一マスターにデータがなくても、カードだけは絶対に構築して画面に出す
                             gears.push({
-                                id: item.gear_id,
-                                name: "名称未定義 (マスター未同期)",
-                                category: "未分類",
-                                num: "-",
-                                mfr: "-",
-                                location: item.location || "no assign"
+                                id: item.gear_id, name: "名称未定義 (マスター未同期)", category: "未分類",
+                                num: "-", mfr: "-", location: item.location || "no assign"
                             });
                         }
                     });
                 }
-                logStatus(`📊 マージ完了。総カード数: ${gears.length} 件`);
 
                 const { data: msgData } = await globalThis.sb.from('messages').select('*').eq('event_id', currentEventId).order('created_at', { ascending: false });
                 bbsMessages = msgData || [];
 
                 renderTable();
                 renderLocationManagerList();
+                renderMaintenanceTable();
                 renderBBS();
                 
                 document.getElementById('loadingScreen').classList.add('hidden');
             } catch (err) {
-                logStatus(`❌ 同期致命的エラー: ${err.message}`);
+                logStatus(`❌ 同期エラー: ${err.message}`);
                 document.getElementById('errorDiagnostic').classList.remove('hidden');
             }
         }
 
         async function manualRefreshData() {
-            logStatus("⏳ 手動差分修復を実行...");
+            const icon = document.getElementById('iconRefresh');
+            if (icon) icon.classList.add('animate-spin');
             if (globalThis.sb && currentEventId) {
                 const { data: master } = await globalThis.sb.from('gears').select('id');
                 const { data: current } = await globalThis.sb.from('event_assignments').select('gear_id').eq('event_id', currentEventId);
@@ -346,6 +390,7 @@
                 }
             }
             await fetchSupabaseData(false);
+            if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
         }
 
         function renderTable() {
@@ -366,7 +411,7 @@
             }
 
             container.innerHTML = displayData.map(gear => `
-                <div class="bg-cardBg border border-borderStroke rounded-xl p-3 flex flex-col justify-between gap-2 shadow-md hover:border-accentGreen/40" onclick="openMaintModal('${gear.id}')">
+                <div class="bg-cardBg border border-borderStroke rounded-xl p-3 flex flex-col justify-between gap-2 shadow-md hover:border-accentGreen/40 cursor-pointer" onclick="openMaintModal('${gear.id}')">
                     <div class="space-y-1">
                         <span class="inline-block bg-emerald-500/10 text-accentGreen text-[9px] px-1.5 py-0.5 rounded font-bold">${gear.category || '未分類'}</span>
                         <div class="flex flex-wrap items-baseline gap-x-1.5 w-full">
@@ -384,6 +429,18 @@
             `).join('');
         }
 
+        function renderMaintenanceTable() {
+            const tbody = document.getElementById('maintTableBody'); if(!tbody) return;
+            const keyword = document.getElementById('maintSearchKeyword').value.toLowerCase();
+            let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
+            tbody.innerHTML = displayData.map(gear => `
+                <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
+                    <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
+                    <td class="p-2 font-bold text-white truncate">${gear.name}</td>
+                </tr>
+            `).join('');
+        }
+
         function openMaintModal(id) {
             const gear = gears.find(g => String(g.id) === String(id)); if (!gear) return;
             document.getElementById('editTargetId').value = gear.id;
@@ -392,6 +449,15 @@
             document.getElementById('editCat').value = gear.category || "";
             document.getElementById('editNum').value = gear.num || "";
             document.getElementById('editMfr').value = gear.mfr || "";
+            
+            // 💡 権限に応じたモーダル操作の制限付与
+            document.getElementById('editName').disabled = globalThis.isViewerMode;
+            document.getElementById('editCat').disabled = globalThis.isViewerMode;
+            document.getElementById('editNum').disabled = globalThis.isViewerMode;
+            document.getElementById('editMfr').disabled = globalThis.isViewerMode;
+            document.getElementById('btnModalDelete').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
+            document.getElementById('btnModalSave').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
+
             document.getElementById('maintModal').classList.remove('hidden');
         }
         function closeMaintModal() { document.getElementById('maintModal').classList.add('hidden'); }
@@ -500,13 +566,25 @@
             } catch (err) { alert("削除失敗: " + err.message); }
         }
 
+        // 💡 役割（Role）に基づいたUI・メニュー制限の復旧処理
         function applyRoleRestrictions() {
-            userRole = localStorage.getItem('ekiden_user_role') || 'viewer';
+            userRole = localStorage.getItem('ekiden_user_role') || 'admin';
             globalThis.isViewerMode = (userRole === 'viewer');
-            if (globalThis.isViewerMode) {
-                if(document.getElementById('adminLocationForm')) document.getElementById('adminLocationForm').style.display = 'none';
-                if(document.getElementById('navRegister')) document.getElementById('navRegister').style.display = 'none';
+            
+            // 各画面要素の表示・非表示をパーミッションに従って切り替え
+            if (document.getElementById('btnOpenCreateEventModal')) {
+                document.getElementById('btnOpenCreateEventModal').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
             }
+            if (document.getElementById('adminLocationForm')) {
+                document.getElementById('adminLocationForm').style.display = globalThis.isViewerMode ? 'none' : 'flex';
+            }
+            if (document.getElementById('btnOpenLocationManager')) {
+                document.getElementById('btnOpenLocationManager').style.display = (userRole === 'admin') ? 'inline-block' : 'none';
+            }
+            
+            // 下部ナビゲーションタブの出し分け
+            document.getElementById('navRegister').style.display = globalThis.isViewerMode ? 'none' : 'flex';
+            document.getElementById('navMaint').style.display = globalThis.isViewerMode ? 'none' : 'flex';
         }
 
         function forceOpenApp() { document.getElementById('loadingScreen').classList.add('hidden'); }
@@ -517,9 +595,12 @@
             document.getElementById('pageList').classList.toggle('hidden', tab !== 'list');
             document.getElementById('pageBBS').classList.toggle('hidden', tab !== 'bbs');
             document.getElementById('pageRegister').classList.toggle('hidden', tab !== 'register');
+            document.getElementById('pageMaintenance').classList.toggle('hidden', tab !== 'maintenance');
+            
             document.getElementById('navList').className = `flex flex-col items-center text-[9px] font-bold flex-1 ${tab === 'list' ? 'text-accentGreen' : 'text-gray-500'}`;
             document.getElementById('navBBS').className = `flex flex-col items-center text-[9px] font-bold flex-1 ${tab === 'bbs' ? 'text-accentGreen' : 'text-gray-500'}`;
             document.getElementById('navRegister').className = `flex flex-col items-center text-[9px] font-bold flex-1 ${tab === 'register' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navMaint').className = `flex flex-col items-center text-[9px] font-bold flex-1 ${tab === 'maintenance' ? 'text-accentGreen' : 'text-gray-500'}`;
         }
 
         function updateSelectBoxes() {
