@@ -47,7 +47,13 @@
         /* iPhoneのノッチ（上部バー）や下部インジケーターの余白（セーフエリア）対策 */
         body {
             padding-top: calc(env(safe-area-inset-top) + 12px);
-            padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+            padding-bottom: calc(env(safe-area-inset-bottom) + 68px); /* ボトムバーと被らないよう下部余白を確保 */
+        }
+
+        /* 日本語の不自然な改行を防ぎ、単語の区切りで改行させる */
+        .keep-word {
+            word-break: keep-all;
+            overflow-wrap: break-word;
         }
     </style>
 </head>
@@ -67,19 +73,19 @@
 
     <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center">
         <div class="max-w-md w-full bg-cardBg border border-borderStroke p-5 rounded-2xl shadow-2xl space-y-4">
-            <div class="border-b border-borderStroke pb-3 flex justify-between items-center">
-                <div class="text-left">
-                    <h3 class="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wider">
-                        <i class="fas fa-folder-open text-accentGreen"></i> 大会（番組ファイル）を選択
+            <div class="border-b border-borderStroke pb-3 flex justify-between items-center gap-2">
+                <div class="text-left min-w-0">
+                    <h3 class="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wider whitespace-nowrap">
+                        <i class="fas fa-folder-open text-accentGreen"></i> 大会ファイルを選択
                     </h3>
-                    <p class="text-[9px] text-slate-500 font-bold mt-0.5 tracking-widest uppercase">SELECT ACTIVE EVENT FILE OR ARCHIVE</p>
+                    <p class="text-[9px] text-slate-500 font-bold mt-0.5 tracking-widest uppercase truncate">SELECT ACTIVE EVENT FILE</p>
                 </div>
-                <button id="btnOpenCreateEventModal" onclick="openCreateEventModal()" class="bg-accentGreen/10 hover:bg-accentGreen/20 border border-accentGreen/30 text-accentGreen text-[10px] font-black px-2.5 py-1 rounded-lg transition active:scale-95 flex items-center gap-1">
+                <button id="btnOpenCreateEventModal" onclick="openCreateEventModal()" class="bg-accentGreen/10 hover:bg-accentGreen/20 border border-accentGreen/30 text-accentGreen text-[10px] font-black px-2.5 py-1 rounded-lg transition active:scale-95 flex items-center gap-1 whitespace-nowrap shrink-0">
                     <i class="fas fa-plus"></i> 新規作成
                 </button>
             </div>
             <div id="eventListContainer" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1"></div>
-            <div class="flex justify-between items-center pt-2 border-t border-borderStroke/60">
+            <div class="flex justify-between items-center pt-2 border-t border-borderStroke/60 gap-2 whitespace-nowrap">
                 <p class="text-[9px] text-slate-600 font-mono">ROLE: <span id="lblUserRole" class="text-slate-400 font-bold">---</span></p>
                 <button onclick="handleLogout()" class="text-[10px] text-rose-400 hover:text-rose-300 font-bold flex items-center gap-1"><i class="fas fa-sign-out-alt"></i> システム離脱</button>
             </div>
@@ -142,11 +148,11 @@
                     </select>
                 </div>
             </div>
-            <div class="flex justify-between items-center pt-3 border-t border-borderStroke/60 gap-2">
-                <button onclick="deleteEventFile()" class="text-rose-500 hover:text-rose-400 font-bold text-xs flex items-center gap-1 transition">
+            <div class="flex justify-between items-center pt-3 border-t border-borderStroke/60 gap-2 flex-wrap">
+                <button onclick="deleteEventFile()" class="text-rose-500 hover:text-rose-400 font-bold text-xs flex items-center gap-1 transition whitespace-nowrap">
                     <i class="fas fa-trash-alt"></i> このファイルを完全削除
                 </button>
-                <div class="flex gap-1.5">
+                <div class="flex gap-1.5 ml-auto">
                     <button onclick="closeEditEventModal()" class="bg-slate-800 text-gray-300 px-3 py-1.5 rounded-lg font-bold text-xs">閉じる</button>
                     <button onclick="updateEventFile()" class="bg-yellow-500 text-bgDark font-black px-3 py-1.5 rounded-lg text-xs">保存</button>
                 </div>
@@ -169,30 +175,30 @@
 
     <div id="mainAppContent" class="max-w-6xl mx-auto w-full flex flex-col h-full overflow-hidden space-y-2.5 hidden">
         
-        <div class="flex justify-between items-center border-b border-borderStroke pb-1.5 shrink-0">
-            <div>
-                <h1 class="text-base md:text-lg font-black text-white flex items-center gap-1.5">
-                    <span class="text-accentGreen">⚡</span> <span id="lblCurrentEventName">未選択の大会</span>
+        <div class="flex justify-between items-center border-b border-borderStroke pb-1.5 shrink-0 gap-2">
+            <div class="min-w-0">
+                <h1 class="text-sm md:text-lg font-black text-white flex items-center gap-1.5 truncate">
+                    <span class="text-accentGreen shrink-0">⚡</span> <span id="lblCurrentEventName" class="truncate">未選択の大会</span>
                 </h1>
-                <p class="text-[10px] text-slate-400 flex items-center gap-2">
-                    <span>現場用リアルタイム同期システム</span>
+                <p class="text-[9px] md:text-[10px] text-slate-400 flex items-center gap-1.5 whitespace-nowrap overflow-x-auto no-scrollbar">
+                    <span class="shrink-0">現場同期システム</span>
                     <span class="text-slate-600">|</span>
-                    <button onclick="returnToEventMenu()" class="text-accentGreen hover:underline font-bold text-[9px] flex items-center gap-1"><i class="fas fa-exchange-alt"></i> 📁 番組ファイル切替</button>
+                    <button onclick="returnToEventMenu()" class="text-accentGreen hover:underline font-bold text-[9px] flex items-center gap-1 shrink-0"><i class="fas fa-exchange-alt"></i> 📁 ファイル切替</button>
                 </p>
             </div>
-            <div class="flex items-center gap-2">
-                <div class="bg-cardBg border border-borderStroke px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-400">
-                    配置数: <span id="totalBadge" class="text-white font-black">0</span> 点
+            <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <div class="bg-cardBg border border-borderStroke px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-400">
+                    配置: <span id="totalBadge" class="text-white font-black">0</span> 点
                 </div>
-                <button onclick="handleLogout()" class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-400 font-black text-[10px] px-2.5 py-0.5 rounded-full transition active:scale-95 flex items-center gap-1">
+                <button onclick="handleLogout()" class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-full transition active:scale-95 flex items-center gap-1">
                     <i class="fas fa-sign-out-alt"></i> 離退
                 </button>
             </div>
         </div>
 
-        <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2 pb-16">
-            <div class="bg-cardBg border border-borderStroke p-2 rounded-xl flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
-                <div class="flex flex-row w-full md:w-auto gap-2 items-center flex-1">
+        <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2 pb-4">
+            <div class="bg-cardBg border border-borderStroke p-2 rounded-xl flex flex-col md:flex-row gap-2 items-center justify-between shrink-0">
+                <div class="flex flex-row w-full md:w-auto gap-1.5 items-center flex-1">
                     <div class="relative flex-1 md:flex-none md:w-56">
                         <i class="fas fa-search absolute left-2.5 top-2.5 text-slate-500 text-[10px]"></i>
                         <input type="text" id="searchKeyword" oninput="renderTable()" placeholder="機材名、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg pl-7 pr-2 py-1 text-xs text-white focus:border-accentGreen outline-none">
@@ -210,8 +216,8 @@
                         <i class="fas fa-map-marker-alt absolute left-2.5 top-2.5 text-yellow-500 text-[10px]"></i>
                         <input type="text" id="newPointName" placeholder="新配置先（例: 3中継点）" class="w-full bg-bgDark border border-borderStroke rounded-lg pl-7 pr-2 py-1 text-xs text-white focus:border-yellow-500 outline-none">
                     </div>
-                    <button onclick="addLocationPoint()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black text-[10px] px-3 py-1.5 rounded-lg transition active:scale-95 shrink-0">
-                        📍 配置先を追加
+                    <button onclick="addLocationPoint()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black text-[10px] px-3 py-1.5 rounded-lg transition active:scale-95 shrink-0 whitespace-nowrap">
+                        📍 配置先追加
                     </button>
                 </div>
             </div>
@@ -221,13 +227,13 @@
             </div>
         </div>
 
-        <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 pb-16 hidden">
+        <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 pb-4 hidden">
             <div id="bbsFormContainer" class="bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2 transition-colors duration-200">
                 <div class="flex justify-between items-center">
-                    <h3 id="bbsFormTitle" class="text-[11px] font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5">
+                    <h3 id="bbsFormTitle" class="text-[11px] font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap">
                         <i class="fas fa-comment-dots"></i> 現場全体へメッセージを一斉送信
                     </h3>
-                    <button id="btnCancelEdit" onclick="cancelBBSEdit()" class="hidden text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700">キャンセル</button>
+                    <button id="btnCancelEdit" onclick="cancelBBSEdit()" class="hidden text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700 whitespace-nowrap">キャンセル</button>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-2">
                     <input type="hidden" id="editMsgId">
@@ -241,7 +247,7 @@
             </div>
         </div>
 
-        <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-20 overflow-y-auto">
+        <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-4 overflow-y-auto">
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-3">
                 <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-plus-circle"></i> 新規機材の登録</h3>
                 <div class="grid grid-cols-2 gap-2">
@@ -260,7 +266,7 @@
                         <input type="text" id="addCat" placeholder="例: 無線機" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
                     </div>
                     <div>
-                        <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">この大会での配置ポイント</label>
+                        <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">配置ポイント</label>
                         <select id="addLoc" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none"></select>
                     </div>
                 </div>
@@ -278,7 +284,7 @@
             </div>
             
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-2">
-                <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-link"></i> 既存マスター機材のこの大会へのアサイン</h3>
+                <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-link"></i> 既存マスター機材のアサイン</h3>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">アサインする機材ID</label>
@@ -293,18 +299,18 @@
             </div>
         </div>
 
-        <div id="pageMaintenance" class="space-y-2 hidden pb-16 flex-1 flex flex-col overflow-hidden">
+        <div id="pageMaintenance" class="space-y-2 hidden pb-4 flex-1 flex flex-col overflow-hidden">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl shrink-0">
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
             </div>
             <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 shadow-xl">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr class="bg-slate-900/95 border-b border-borderStroke text-slate-400 text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10">
-                            <th class="p-2.5 w-[20%]">機材ID</th>
-                            <th class="p-2.5 w-[25%]">カテゴリー</th>
-                            <th class="p-2.5 w-[45%]">機材名</th>
-                            <th class="p-2.5 w-[10%] text-right">操作</th>
+                            <th class="p-2 w-[22%] whitespace-nowrap">機材ID</th>
+                            <th class="p-2 w-[28%] whitespace-nowrap">カテゴリー</th>
+                            <th class="p-2 w-[40%] whitespace-nowrap">機材名</th>
+                            <th class="p-2 w-[10%] text-right whitespace-nowrap"></th>
                         </tr>
                     </thead>
                     <tbody id="maintTableBody" class="divide-y divide-borderStroke text-xs"></tbody>
@@ -316,7 +322,7 @@
     <div id="maintModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeMaintModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-xl rounded-xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col" onclick="event.stopPropagation()">
             <div class="bg-slate-900 px-4 py-3 border-b border-borderStroke flex justify-between items-center shrink-0">
-                <h2 id="modalTitle" class="text-sm font-black text-white">機材詳細情報</h2>
+                <h2 id="modalTitle" class="text-sm font-black text-white truncate">機材詳細情報</h2>
                 <button onclick="closeMaintModal()" class="text-slate-400 hover:text-white p-1 text-base"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-4 space-y-3 text-xs overflow-y-auto flex-1">
@@ -325,16 +331,16 @@
                     <div id="imagePreviewContainer" class="w-28 h-20 bg-slate-900 rounded-lg border border-borderStroke flex flex-col items-center justify-center text-slate-600 overflow-hidden shrink-0"></div>
                     <div id="imageUploadControls" class="space-y-1.5 w-full text-left">
                         <input type="file" id="editImageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-                        <div class="flex gap-1.5">
-                            <button id="btnCameraUpload" onclick="document.getElementById('editImageInput').click()" class="bg-slate-800 text-yellow-400 border border-slate-700 px-2.5 py-1 rounded-lg font-bold text-[10px]"><i class="fas fa-camera mr-1"></i> 写真を追加・変更</button>
-                            <button id="deleteImageBtn" onclick="deleteGearImage()" class="bg-slate-900 text-rose-500 border border-borderStroke px-2.5 py-1 rounded-lg font-bold text-[10px] hidden">削除</button>
+                        <div class="flex gap-1.5 flex-wrap">
+                            <button id="btnCameraUpload" onclick="document.getElementById('editImageInput').click()" class="bg-slate-800 text-yellow-400 border border-slate-700 px-2.5 py-1 rounded-lg font-bold text-[10px] whitespace-nowrap"><i class="fas fa-camera mr-1"></i> 写真を追加・変更</button>
+                            <button id="deleteImageBtn" onclick="deleteGearImage()" class="bg-slate-900 text-rose-500 border border-borderStroke px-2.5 py-1 rounded-lg font-bold text-[10px] hidden whitespace-nowrap">削除</button>
                         </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
-                    <div class="bg-bgDark p-1.5 rounded-xl border border-borderStroke flex flex-col justify-center">
-                        <label class="text-slate-500 block text-[9px] font-bold">機材ID</label>
-                        <span id="editIdDisplay" class="font-mono font-bold text-gray-300 text-xs">---</span>
+                    <div class="bg-bgDark p-1.5 rounded-xl border border-borderStroke flex flex-col justify-center min-w-0">
+                        <label class="text-slate-500 block text-[9px] font-bold whitespace-nowrap">機材ID</label>
+                        <span id="editIdDisplay" class="font-mono font-bold text-gray-300 text-xs truncate">---</span>
                     </div>
                     <div class="col-span-2">
                         <label class="text-slate-400 block mb-0.5 font-bold">機材名</label>
@@ -370,23 +376,23 @@
                     <textarea id="editAttachments" rows="2" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-white outline-none resize-none"></textarea>
                 </div>
             </div>
-            <div class="bg-slate-900/50 px-4 py-2 border-t border-borderStroke flex justify-between items-center shrink-0">
-                <button id="btnModalDelete" onclick="deleteGearFromAssignment()" class="text-rose-500 hover:text-rose-400 font-bold text-xs flex items-center gap-1 transition">
-                    <i class="fas fa-trash-alt"></i> この大会から外す
+            <div class="bg-slate-900/50 px-4 py-2 border-t border-borderStroke flex justify-between items-center shrink-0 gap-2">
+                <button id="btnModalDelete" onclick="deleteGearFromAssignment()" class="text-rose-500 hover:text-rose-400 font-bold text-xs flex items-center gap-1 transition whitespace-nowrap">
+                    <i class="fas fa-trash-alt"></i> 大会から除外
                 </button>
-                <div class="flex gap-1.5">
+                <div class="flex gap-1.5 ml-auto">
                     <button onclick="closeMaintModal()" class="bg-slate-800 text-gray-300 px-3 py-1.5 rounded-lg font-bold text-xs">閉じる</button>
-                    <button id="btnModalSave" onclick="saveMaintenanceData()" class="bg-yellow-500 text-bgDark font-black px-3 py-1.5 rounded-lg text-xs">変更を保存</button>
+                    <button id="btnModalSave" onclick="saveMaintenanceData()" class="bg-yellow-500 text-bgDark font-black px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">変更を保存</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="bottomNavBar" class="fixed bottom-0 left-0 right-0 bg-cardBg/90 backdrop-blur-md border-t border-borderStroke py-1.5 flex justify-around z-30 shadow-2xl hidden">
-        <button id="navList" onclick="switchTab('list')" class="flex flex-col items-center gap-0.5 text-accentGreen text-[10px] font-bold"><i class="fas fa-layer-group text-base"></i><span>機材配置</span></button>
-        <button id="navBBS" onclick="switchTab('bbs')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[10px] font-bold"><i class="fas fa-comments text-base"></i><span>現場掲示板</span></button>
-        <button id="navRegister" onclick="switchTab('register')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[10px] font-bold"><i class="fas fa-edit text-base"></i><span>データ登録</span></button>
-        <button id="navMaint" onclick="switchTab('maintenance')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[10px] font-bold"><i class="fas fa-tools text-base"></i><span>管理</span></button>
+    <div id="bottomNavBar" class="fixed bottom-0 left-0 right-0 bg-cardBg/95 backdrop-blur-md border-t border-borderStroke pt-2 pb-[calc(env(safe-area-inset-bottom)+6px)] flex justify-around z-30 shadow-2xl hidden px-1">
+        <button id="navList" onclick="switchTab('list')" class="flex flex-col items-center gap-0.5 text-accentGreen text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-layer-group text-sm md:text-base"></i><span>機材配置</span></button>
+        <button id="navBBS" onclick="switchTab('bbs')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-comments text-sm md:text-base"></i><span>現場掲示板</span></button>
+        <button id="navRegister" onclick="switchTab('register')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-edit text-sm md:text-base"></i><span>データ登録</span></button>
+        <button id="navMaint" onclick="switchTab('maintenance')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-tools text-sm md:text-base"></i><span>管理設定</span></button>
     </div>
 
     <script>
@@ -434,18 +440,18 @@
                 container.innerHTML = events.map(ev => {
                     const isActive = ev.status === 'active';
                     return `
-                        <div class="bg-cardBg border ${isActive ? 'border-accentGreen/40' : 'border-borderStroke'} p-3 rounded-xl flex justify-between items-center transition relative group">
-                            <div onclick="selectEventFile('${ev.id}', '${ev.name}')" class="text-left flex-1 cursor-pointer active:scale-[0.99]">
-                                <h4 class="text-xs font-bold ${isActive ? 'text-white' : 'text-slate-400'}">📁 ${ev.name}</h4>
-                                <p class="text-[9px] text-slate-500 font-mono mt-0.5">開催日: ${ev.date}</p>
+                        <div class="bg-cardBg border ${isActive ? 'border-accentGreen/40' : 'border-borderStroke'} p-3 rounded-xl flex justify-between items-center transition relative group gap-2">
+                            <div onclick="selectEventFile('${ev.id}', '${ev.name}')" class="text-left flex-1 cursor-pointer active:scale-[0.99] min-w-0">
+                                <h4 class="text-xs font-bold ${isActive ? 'text-white' : 'text-slate-400'} truncate">📁 ${ev.name}</h4>
+                                <p class="text-[9px] text-slate-500 font-mono mt-0.5 whitespace-nowrap">開催日: ${ev.date}</p>
                             </div>
-                            <div class="flex items-center gap-2 shrink-0">
+                            <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
                                 ${!isViewer ? `
                                 <button onclick="openEditEventModal('${ev.id}')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-yellow-500 px-2 py-1 rounded-lg border border-slate-700 font-bold transition active:scale-95">
-                                    <i class="fas fa-edit"></i> 編集
+                                    編集
                                 </button>` : ''}
-                                <span onclick="selectEventFile('${ev.id}', '${ev.name}')" class="text-[9px] font-black px-2 py-0.5 rounded cursor-pointer ${isActive ? 'bg-emerald-500/10 text-accentGreen border border-accentGreen/20' : 'bg-slate-900 text-slate-600'}">
-                                    ${isActive ? '⚡ ONLINE' : '🗄️ ARCHIVE'}
+                                <span onclick="selectEventFile('${ev.id}', '${ev.name}')" class="text-[9px] font-black px-1.5 py-0.5 rounded cursor-pointer ${isActive ? 'bg-emerald-500/10 text-accentGreen border border-accentGreen/20' : 'bg-slate-900 text-slate-600'}">
+                                    ${isActive ? 'ONLINE' : 'ARCHIVE'}
                                 </span>
                             </div>
                         </div>
@@ -742,16 +748,18 @@
                 <div class="bg-cardBg border border-borderStroke rounded-xl p-3 flex flex-col justify-between gap-2 shadow-md hover:border-accentGreen/40 transition duration-150 cursor-pointer" onclick="openMaintModal('${gear.id}')">
                     <div class="flex items-start justify-between gap-2">
                         <div class="space-y-1 flex-1 min-w-0">
-                            <span class="inline-block bg-emerald-500/10 text-accentGreen text-[9px] px-1.5 py-0.5 rounded font-bold">${gear.category || '未分類'}</span>
-                            <div class="truncate">
-                                <span class="font-bold text-white text-xs mr-1.5">${gear.name}</span>
-                                <span class="font-mono text-[10px] text-slate-400 font-bold bg-slate-900 px-1 rounded">${gear.num || '-'}</span>
+                            <div>
+                                <span class="inline-block bg-emerald-500/10 text-accentGreen text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap mb-1">${gear.category || '未分類'}</span>
+                            </div>
+                            <div class="flex items-baseline justify-between gap-1 w-full">
+                                <span class="font-bold text-white text-xs keep-word flex-1">${gear.name}</span>
+                                <span class="font-mono text-[10px] text-slate-400 font-bold bg-slate-900 px-1 rounded whitespace-nowrap shrink-0">${gear.num || '-'}</span>
                             </div>
                         </div>
                     </div>
                     <div class="border-t border-borderStroke/60 pt-1.5 flex items-center justify-between gap-2" onclick="event.stopPropagation()">
-                        <span class="text-[9px] text-slate-500 font-bold shrink-0">📍配置</span>
-                        <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-200 px-1.5 py-1 rounded-lg text-xs font-semibold outline-none w-full max-w-[160px] ${globalThis.isViewerMode ? 'opacity-50 cursor-not-allowed' : ''}">
+                        <span class="text-[9px] text-slate-500 font-bold shrink-0 whitespace-nowrap">📍配置</span>
+                        <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-200 px-1.5 py-1 rounded-lg text-xs font-semibold outline-none w-full max-w-[170px] ${globalThis.isViewerMode ? 'opacity-50 cursor-not-allowed' : ''}">
                             ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
                         </select>
                     </div>
@@ -772,9 +780,9 @@
                                 <span class="text-accentGreen font-bold text-xs truncate">${msg.name}</span>
                                 <span class="text-[9px] text-slate-500 font-mono shrink-0">${timeStr}</span>
                             </div>
-                            ${!globalThis.isViewerMode ? `<button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 text-slate-400 border border-borderStroke px-1.5 py-0.5 rounded transition">編集</button>` : ''}
+                            ${!globalThis.isViewerMode ? `<button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 text-slate-400 border border-borderStroke px-1.5 py-0.5 rounded transition whitespace-nowrap">編集</button>` : ''}
                         </div>
-                        <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight pt-0.5">${msg.body}</p>
+                        <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight pt-0.5 keep-word">${msg.body}</p>
                     </div>
                 `;
             }).join('');
@@ -786,10 +794,10 @@
             let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
             tbody.innerHTML = displayData.map(gear => `
                 <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
-                    <td class="p-2 font-mono text-slate-400 font-bold">${gear.id}</td>
-                    <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-2 py-0.5 rounded font-bold">${gear.category || '未分類'}</span></td>
-                    <td class="p-2 font-bold text-white">${gear.name}</td>
-                    <td class="p-2 text-right text-yellow-500 font-bold text-[10px]">編集 ></td>
+                    <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
+                    <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${gear.category || '未分類'}</span></td>
+                    <td class="p-2 font-bold text-white truncate">${gear.name}</td>
+                    <td class="p-2 text-right text-yellow-500 font-bold text-[10px] whitespace-nowrap">></td>
                 </tr>
             `).join('');
         }
@@ -879,10 +887,10 @@
             document.getElementById('pageBBS').classList.toggle('hidden', tab !== 'bbs');
             document.getElementById('pageRegister').classList.toggle('hidden', tab !== 'register');
             document.getElementById('pageMaintenance').classList.toggle('hidden', tab !== 'maintenance');
-            document.getElementById('navList').className = `flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'list' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navBBS').className = `flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'bbs' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navRegister').className = `flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'register' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navMaint').className = `flex flex-col items-center gap-0.5 text-[10px] font-bold ${tab === 'maintenance' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navList').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'list' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navBBS').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'bbs' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navRegister').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'register' ? 'text-accentGreen' : 'text-gray-500'}`;
+            document.getElementById('navMaint').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'maintenance' ? 'text-accentGreen' : 'text-gray-500'}`;
         }
 
         function updateSelectBoxes() {
