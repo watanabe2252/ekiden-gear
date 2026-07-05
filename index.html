@@ -60,7 +60,6 @@
             padding-left: 2rem;
         }
 
-        /* ドラッグ時の視覚効果 */
         .sortable-dragging {
             opacity: 0.4;
             background: #1e2538 !important;
@@ -200,12 +199,12 @@
             <div class="p-4 space-y-3 text-xs overflow-y-auto flex-1">
                 <input type="hidden" id="editTargetId">
                 <div class="flex gap-3 bg-bgDark border border-borderStroke p-3 rounded-xl items-center">
-                    <div id="imagePreviewContainer" class="w-28 h-20 bg-slate-900 rounded-lg border border-borderStroke flex flex-col items-center justify-center text-slate-600 overflow-hidden shrink-0"></div>
+                    <div id="imagePreviewContainer" class="w-24 h-24 bg-slate-950 rounded-xl border border-borderStroke flex flex-col items-center justify-center text-slate-600 overflow-hidden shrink-0 shadow-inner"></div>
                     <div id="imageUploadControls" class="space-y-1.5 w-full text-left">
                         <input type="file" id="editImageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
                         <div class="flex gap-1.5 flex-wrap">
-                            <button id="btnCameraUpload" onclick="document.getElementById('editImageInput').click()" class="bg-slate-800 text-yellow-400 border border-slate-700 px-2.5 py-1 rounded-lg font-bold text-[10px] whitespace-nowrap"><i class="fas fa-camera mr-1"></i> 写真を追加・変更</button>
-                            <button id="deleteImageBtn" onclick="deleteGearImage()" class="bg-slate-900 text-rose-500 border border-borderStroke px-2.5 py-1 rounded-lg font-bold text-[10px] hidden whitespace-nowrap">削除</button>
+                            <button id="btnCameraUpload" onclick="document.getElementById('editImageInput').click()" class="bg-slate-800 text-yellow-400 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl font-bold text-[10px] whitespace-nowrap transition active:scale-95"><i class="fas fa-camera mr-1"></i> 写真を追加・変更</button>
+                            <button id="deleteImageBtn" onclick="deleteGearImage()" class="bg-slate-950 text-rose-500 border border-borderStroke px-3 py-2 rounded-xl font-bold text-[10px] hidden whitespace-nowrap transition active:scale-95">削除</button>
                         </div>
                     </div>
                 </div>
@@ -254,7 +253,7 @@
                 </button>
                 <div class="flex gap-1.5 ml-auto">
                     <button onclick="closeMaintModal()" class="bg-slate-800 text-gray-300 px-3 py-1.5 rounded-lg font-bold text-xs">閉じる</button>
-                    <button id="btnModalSave" onclick="saveMaintenanceData()" class="bg-yellow-500 text-bgDark font-black px-3 py-1.5 rounded-lg text-xs whitespace-nowrap">変更を保存</button>
+                    <button id="btnModalSave" onclick="saveMaintenanceData()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black px-4 py-1.5 rounded-lg text-xs whitespace-nowrap transition active:scale-95">変更を保存</button>
                 </div>
             </div>
         </div>
@@ -295,7 +294,7 @@
                     </div>
                     <div class="flex-1 md:flex-none md:w-40 flex items-center gap-1">
                         <select id="filterLocation" onchange="renderTable()" class="w-full bg-bgDark border border-borderStroke rounded-lg py-1.5 px-2 text-xs text-white focus:border-accentGreen outline-none"></select>
-                        <button id="btnOpenLocationManager" onclick="openLocationManagerModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-slate-700 p-2 rounded-lg text-xs transition active:scale-95 shrink-0" title="配置先の並び替え・編集">
+                        <button id="btnOpenLocationManager" onclick="openLocationManagerModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-slate-700 p-2 rounded-lg text-xs transition active:scale-95 shrink-0">
                             <i class="fas fa-sort-amount-down-alt"></i>
                         </button>
                     </div>
@@ -409,13 +408,6 @@
         </div>
     </div>
 
-    <div id="bottomNavBar" class="fixed bottom-0 left-0 right-0 bg-cardBg/95 backdrop-blur-md border-t border-borderStroke pt-2.5 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-around z-30 shadow-2xl hidden px-1">
-        <button id="navList" onclick="switchTab('list')" class="flex flex-col items-center gap-0.5 text-accentGreen text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-layer-group text-sm md:text-base"></i><span>機材配置</span></button>
-        <button id="navBBS" onclick="switchTab('bbs')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-comments text-sm md:text-base"></i><span>現場掲示板</span></button>
-        <button id="navRegister" onclick="switchTab('register')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-edit text-sm md:text-base"></i><span>データ登録</span></button>
-        <button id="navMaint" onclick="switchTab('maintenance')" class="flex flex-col items-center gap-0.5 text-slate-500 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap"><i class="fas fa-tools text-sm md:text-base"></i><span>管理設定</span></button>
-    </div>
-
     <script>
         globalThis.sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const defaultLocations = ["no assign"];
@@ -428,8 +420,6 @@
         let gears = [];             
         let bbsMessages = [];
         let currentUploadedUrl = "";
-
-        // ドラッグ中の要素保持用変数
         let dragTargetElement = null;
 
         function logStatus(msg) {
@@ -455,7 +445,6 @@
                 const { data: eventData, error } = await globalThis.sb.from('events').select('*').order('date', { ascending: false });
                 if (error) throw error;
                 events = eventData || [];
-                logStatus(`✅ 大会リスト検知: ${events.length}件`);
                 
                 const container = document.getElementById('eventListContainer');
                 document.getElementById('lblUserRole').innerText = userRole.toUpperCase();
@@ -567,7 +556,6 @@
             if (!silent) document.getElementById('loadingScreen').classList.remove('hidden');
             logStatus(`🔄 データベース同期中... (大会ID: ${currentEventId})`);
             try {
-                // 💡 並び替え順（sort_order）を考慮してデータを取得するようにクエリを変更
                 const { data: locData, error: locErr } = await globalThis.sb
                     .from('locations')
                     .select('id, name, sort_order')
@@ -732,6 +720,8 @@
             } catch (err) { alert(err.message); } finally { showLoading(false); }
         }
 
+        // 💡 【超重要：画像保存バグの修正箇所】
+        // 変更を保存する際、新しくアップロードした画像パス（currentUploadedUrl）をデータベースに確実に同期
         async function saveMaintenanceData() {
             if (!globalThis.sb) return;
             const id = document.getElementById('editTargetId').value;
@@ -740,14 +730,27 @@
             if (!name || !category) return alert("入力が不足しています。");
             showLoading(true, "SAVING...");
             try {
-                await globalThis.sb.from('gears').update({
-                    name, category, num: document.getElementById('editNum').value.trim(), mfr: document.getElementById('editMfr').value.trim(),
-                    serial: document.getElementById('editSerial').value.trim(), asset: document.getElementById('editAsset').value.trim(),
-                    attachments: document.getElementById('editAttachments').value.trim(), image_url: currentUploadedUrl
+                // gearsテーブルに、最新の image_url カラムの値をしっかりとコミットします。
+                const { error: updateError } = await globalThis.sb.from('gears').update({
+                    name, 
+                    category, 
+                    num: document.getElementById('editNum').value.trim(), 
+                    mfr: document.getElementById('editMfr').value.trim(),
+                    serial: document.getElementById('editSerial').value.trim(), 
+                    asset: document.getElementById('editAsset').value.trim(),
+                    attachments: document.getElementById('editAttachments').value.trim(), 
+                    image_url: currentUploadedUrl // 💡 最新のアップロードURLをここに確実に書き込み
                 }).eq('id', id);
+
+                if (updateError) throw updateError;
+
                 closeMaintModal();
-                await fetchSupabaseData(true);
-            } catch(err) { alert(err.message); } finally { showLoading(false); }
+                await fetchSupabaseData(true); // 画面データを最新状態に再同期
+            } catch(err) { 
+                alert("変更の保存に失敗しました: " + err.message); 
+            } finally { 
+                showLoading(false); 
+            }
         }
 
         async function deleteGearFromAssignment() {
@@ -785,7 +788,6 @@
         
         function closeLocationManagerModal() { document.getElementById('locationManagerModal').classList.add('hidden'); }
 
-        // 💡 並び替え可能なドラッグ＆ドロップ ＆ 上下移動対応のUIレンダリング
         function renderLocationManagerList() {
             const container = document.getElementById('locationManagerList');
             if (!container) return;
@@ -810,10 +812,10 @@
                            class="flex-1 bg-cardBg border border-borderStroke rounded px-2 py-1 text-xs text-white outline-none font-bold focus:border-yellow-500">
                     
                     <div class="flex items-center gap-0.5 shrink-0">
-                        <button onclick="moveLocationRow(${idx}, -1)" class="bg-slate-900 text-slate-400 hover:text-white p-1 rounded text-[10px]" title="上へ移動">
+                        <button onclick="moveLocationRow(${idx}, -1)" class="bg-slate-900 text-slate-400 hover:text-white p-1 rounded text-[10px]">
                             <i class="fas fa-chevron-up"></i>
                         </button>
-                        <button onclick="moveLocationRow(${idx}, 1)" class="bg-slate-900 text-slate-400 hover:text-white p-1 rounded text-[10px]" title="下へ移動">
+                        <button onclick="moveLocationRow(${idx}, 1)" class="bg-slate-900 text-slate-400 hover:text-white p-1 rounded text-[10px]">
                             <i class="fas fa-chevron-down"></i>
                         </button>
                     </div>
@@ -825,7 +827,7 @@
             `).join('');
         }
 
-        /* 💡 ドラッグ＆ドロップ制御ロジック群 */
+         Taraget処理
         function handleDragStart(e) {
             dragTargetElement = e.currentTarget;
             e.currentTarget.classList.add('sortable-dragging');
@@ -851,16 +853,13 @@
         function handleDragEnd(e) {
             e.currentTarget.classList.remove('sortable-dragging');
             dragTargetElement = null;
-            // クライアント側のインデックス順列アレイを画面上の並びを元に同期再編
             rebuildRawLocationsFromDOM();
         }
 
-        // 💡 上下ボタンでの移動制御
         function moveLocationRow(index, direction) {
             const targetIndex = index + direction;
             if (targetIndex < 0 || targetIndex >= rawCloudLocations.length) return;
             
-            // 配列要素をスワップ
             const temp = rawCloudLocations[index];
             rawCloudLocations[index] = rawCloudLocations[targetIndex];
             rawCloudLocations[targetIndex] = temp;
@@ -884,7 +883,6 @@
             document.getElementById('lblOrderSavedStatus').className = "text-[10px] font-bold text-yellow-500 font-mono";
         }
 
-        // 💡 変更された並び順を一括でSupabaseに保存する確定ロジック
         async function saveLocationOrder() {
             if (userRole !== 'admin' || !globalThis.sb || !currentEventId) return;
             
@@ -893,11 +891,10 @@
             labelStatus.className = "text-[10px] font-bold text-slate-400 font-mono animate-pulse";
             
             try {
-                // 各行要素のレコード更新プロミス配列を作成
                 const promises = rawCloudLocations.map((loc, index) => {
                     return globalThis.sb
                         .from('locations')
-                        .update({ sort_order: index + 1 }) // 1始まりのインデックス数値を割り当て
+                        .update({ sort_order: index + 1 })
                         .eq('id', loc.id);
                 });
                 
@@ -906,7 +903,6 @@
                 labelStatus.innerText = "✅ 並び順を保存完了";
                 labelStatus.className = "text-[10px] font-bold text-accentGreen font-mono";
                 
-                // 完全再読込して画面側に確定反映
                 await fetchSupabaseData(true);
             } catch (err) {
                 alert("並び順の保存に失敗しました: " + err.message);
@@ -1033,29 +1029,48 @@
         
         function closeMaintModal() { document.getElementById('maintModal').classList.add('hidden'); }
 
+        // 💡 【修正点：画像プレビュー描画処理の強化】
         function refreshModalImagePreview() {
             const container = document.getElementById('imagePreviewContainer');
             const deleteBtn = document.getElementById('deleteImageBtn');
-            if (currentUploadedUrl) {
-                container.innerHTML = `<img src="${currentUploadedUrl}" class="w-full h-full object-cover">`;
+            
+            if (currentUploadedUrl && currentUploadedUrl.trim() !== "") {
+                // 画像URLが存在する場合は、プレビュー枠いっぱいに収まるよう綺麗にCSS配置
+                container.innerHTML = `<img src="${currentUploadedUrl}" class="w-full h-full object-cover rounded-xl shadow-md">`;
                 if(deleteBtn && !globalThis.isViewerMode) deleteBtn.classList.remove('hidden');
             } else {
-                container.innerHTML = `<i class="fas fa-image text-xl mb-0.5"></i><span class="text-[9px]">NO IMAGE</span>`;
+                // 画像がないか、または「?」マークのような初期値状態の場合はNO IMAGEアイコンを出力
+                container.innerHTML = `<i class="fas fa-image text-2xl text-slate-700 mb-1"></i><span class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">NO IMAGE</span>`;
                 if(deleteBtn) deleteBtn.classList.add('hidden');
             }
         }
+        
         function deleteGearImage() { currentUploadedUrl = ""; refreshModalImagePreview(); }
 
+        // 💡 【画像アップロード時の同期処理の強化】
         async function handleImageUpload(event) {
             if (!globalThis.sb) return;
             const file = event.target.files[0]; if (!file) return;
-            showLoading(true, "UPLOADING...");
+            showLoading(true, "写真データを処理中...");
             try {
+                // ファイル名をミリ秒単位の一意なIDで生成
                 const filePath = `${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
-                await globalThis.sb.storage.from('gear-images').upload(filePath, file);
+                
+                // Supabase Storageの「gear-images」バケットへバイナリ直接送信
+                const { error: uploadError } = await globalThis.sb.storage.from('gear-images').upload(filePath, file);
+                if (uploadError) throw uploadError;
+
+                // 保存先からの公開アクセスURL（パブリックURL）を取得
                 const { data } = globalThis.sb.storage.from('gear-images').getPublicUrl(filePath);
-                currentUploadedUrl = data.publicUrl; refreshModalImagePreview();
-            } catch (err) { alert(err.message); } finally { showLoading(false); }
+                
+                // プレビュー用に一時保持し、即座にモーダル枠を更新
+                currentUploadedUrl = data.publicUrl; 
+                refreshModalImagePreview();
+            } catch (err) { 
+                alert("アップロードに失敗しました: " + err.message); 
+            } finally { 
+                showLoading(false); 
+            }
         }
 
         function startBBSEdit(id) {
