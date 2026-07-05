@@ -64,6 +64,9 @@
             opacity: 0.4;
             background: #1e2538 !important;
         }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-bgDark text-slate-100 overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
@@ -80,7 +83,7 @@
         </div>
     </div>
 
-    <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center">
+    <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center hidden">
         <div class="max-w-md w-full bg-cardBg border border-borderStroke p-5 rounded-2xl shadow-2xl space-y-4">
             <div class="border-b border-borderStroke pb-3 flex justify-between items-center gap-2">
                 <div class="text-left min-w-0">
@@ -408,6 +411,21 @@
         </div>
     </div>
 
+    <div id="bottomNavBar" class="fixed bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-md border-t border-borderStroke z-30 px-2 py-1.5 flex justify-around items-center text-center hidden">
+        <button id="navList" onclick="switchTab('list')" class="flex-1 py-1 text-accentGreen flex flex-col items-center gap-0.5">
+            <i class="fas fa-layer-group text-base"></i><span class="text-[9px] font-bold">機材配置</span>
+        </button>
+        <button id="navBBS" onclick="switchTab('bbs')" class="flex-1 py-1 text-slate-400 hover:text-white flex flex-col items-center gap-0.5">
+            <i class="fas fa-comments text-base"></i><span class="text-[9px] font-bold">現場掲示板</span>
+        </button>
+        <button id="navRegister" onclick="switchTab('register')" class="flex-1 py-1 text-slate-400 hover:text-white flex flex-col items-center gap-0.5">
+            <i class="fas fa-plus-circle text-base"></i><span class="text-[9px] font-bold">データ登録</span>
+        </button>
+        <button id="navMaint" onclick="switchTab('maint')" class="flex-1 py-1 text-slate-400 hover:text-white flex flex-col items-center gap-0.5">
+            <i class="fas fa-tools text-base"></i><span class="text-[9px] font-bold">管理設定</span>
+        </button>
+    </div>
+
     <script>
         globalThis.sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const defaultLocations = ["no assign"];
@@ -428,6 +446,24 @@
             if (el) el.innerHTML += `> ${msg}<br>`;
         }
 
+        function showLoading(show, text = "CONNECTING TO SUPABASE...") {
+            const screen = document.getElementById('loadingScreen');
+            const txt = document.getElementById('loadingText');
+            if (!screen) return;
+            if (show) {
+                if (txt) txt.innerText = text;
+                screen.classList.remove('hidden');
+            } else {
+                screen.classList.add('hidden');
+            }
+        }
+
+        function forceOpenApp() {
+            logStatus("⚠️ タイムアウトによる強制バイパスを実行");
+            document.getElementById('loadingScreen').classList.add('hidden');
+            document.getElementById('pageEventSelect').classList.remove('hidden');
+        }
+
         function handleLogout() {
             if(confirm("システムから安全にログアウトしますか？")) {
                 localStorage.removeItem('ekiden_secure_session');
@@ -436,21 +472,81 @@
             }
         }
 
+        function switchTab(tab) {
+            const tabs = {
+                list: document.getElementById('pageList'),
+                bbs: document.getElementById('pageBBS'),
+                register: document.getElementById('pageRegister'),
+                maint: document.getElementById('pageMaintenance')
+            };
+            const navs = {
+                list: document.getElementById('navList'),
+                bbs: document.getElementById('navBBS'),
+                register: document.getElementById('navRegister'),
+                maint: document.getElementById('navMaint')
+            };
+            
+            Object.keys(tabs).forEach(k => {
+                if(tabs[k]) tabs[k].classList.add('hidden');
+                if(navs[k]) {
+                    navs[k].classList.remove('text-accentGreen');
+                    navs[k].classList.add('text-slate-400');
+                }
+            });
+            
+            if(tabs[tab]) tabs[tab].classList.remove('hidden');
+            if(navs[tab]) {
+                navs[tab].classList.remove('text-slate-400');
+                navs[tab].classList.add('text-accentGreen');
+            }
+        }
+
+        function updateSelectBoxes() {
+            const selectors = ['filterLocation', 'addLoc', 'assignLoc'];
+            selectors.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const currentVal = el.value;
+                
+                if (id === 'filterLocation') {
+                    el.innerHTML = `<option value="ALL">📍 すべての配置先</option>` + 
+                        locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+                } else {
+                    el.innerHTML = locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+                }
+                
+                if ([...el.options].some(o => o.value === currentVal)) {
+                    el.value = currentVal;
+                }
+            });
+        }
+
         async function loadEventMenu() {
             if (!globalThis.sb) return;
             userRole = localStorage.getItem('ekiden_user_role') || 'viewer';
-            document.getElementById('loadingScreen').classList.remove('hidden');
-            logStatus("🔌 大会リストの同期を開始...");
+            showLoading(true, "🔌 大会リストの同期を開始...");
+            
+            // 20秒後にエラーデバッグパネルを自動浮き上がりさせる安全タイマー
+            const diagTimer = setTimeout(() => {
+                const diag = document.getElementById('errorDiagnostic');
+                if (diag) diag.classList.remove('hidden');
+            }, 20000);
+
             try {
                 const { data: eventData, error } = await globalThis.sb.from('events').select('*').order('date', { ascending: false });
                 if (error) throw error;
+                clearTimeout(diagTimer);
                 events = eventData || [];
                 
                 const container = document.getElementById('eventListContainer');
-                document.getElementById('lblUserRole').innerText = userRole.toUpperCase();
+                if (document.getElementById('lblUserRole')) {
+                    document.getElementById('lblUserRole').innerText = userRole.toUpperCase();
+                }
+                
                 if (events.length === 0) {
                     container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">番組ファイルがありません。</div>`;
-                    document.getElementById('loadingScreen').classList.add('hidden');
+                    showLoading(false);
+                    document.getElementById('pageEventSelect').classList.remove('hidden');
                     return;
                 }
                 const isViewer = (userRole === 'viewer');
@@ -466,16 +562,17 @@
                     </div>
                 `).join('');
                 document.getElementById('pageEventSelect').classList.remove('hidden');
-                document.getElementById('loadingScreen').classList.add('hidden');
+                showLoading(false);
             } catch (err) {
                 logStatus("❌ 大会ロード失敗: " + err.message);
-                document.getElementById('errorDiagnostic').classList.remove('hidden');
+                const diag = document.getElementById('errorDiagnostic');
+                if (diag) diag.classList.remove('hidden');
             }
         }
 
         function openCreateEventModal() {
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('newEventDate').value = today;
+            if(document.getElementById('newEventDate')) document.getElementById('newEventDate').value = today;
             document.getElementById('createEventModal').classList.remove('hidden');
         }
         function closeCreateEventModal() { document.getElementById('createEventModal').classList.add('hidden'); }
@@ -549,11 +646,11 @@
             initRealtimeListener();
         }
 
-        function returnToEventMenu() { currentEventId = null; loadEventMenu(); }
+        function returnToEventMenu() { currentEventId = null; document.getElementById('mainAppContent').classList.add('hidden'); document.getElementById('bottomNavBar').classList.add('hidden'); loadEventMenu(); }
 
         async function fetchSupabaseData(silent = false) {
             if (!globalThis.sb || !currentEventId) return;
-            if (!silent) document.getElementById('loadingScreen').classList.remove('hidden');
+            if (!silent) showLoading(true, "データベース同期中...");
             logStatus(`🔄 データベース同期中... (大会ID: ${currentEventId})`);
             try {
                 const { data: locData, error: locErr } = await globalThis.sb
@@ -619,11 +716,12 @@
                 renderBBS();
                 
                 if (!silent) {
-                    setTimeout(() => { document.getElementById('loadingScreen').classList.add('hidden'); }, 800);
+                    setTimeout(() => { showLoading(false); }, 600);
                 }
             } catch (err) { 
                 logStatus("❌ 同期エラー発生: " + err.message); 
-                document.getElementById('errorDiagnostic').classList.remove('hidden');
+                const diag = document.getElementById('errorDiagnostic');
+                if (diag) diag.classList.remove('hidden');
             }
         }
 
@@ -669,6 +767,18 @@
             try { await globalThis.sb.from('event_assignments').update({ location: newLoc }).eq('event_id', currentEventId).eq('gear_id', gearId); } catch (err) { alert("変更失敗: " + err.message); }
         }
 
+        async function addLocationPoint() {
+            if (!globalThis.sb || !currentEventId) return;
+            const name = document.getElementById('newPointName').value.trim();
+            if (!name) return alert("配置先名を入力してください。");
+            try {
+                const nextOrder = rawCloudLocations.length + 1;
+                await globalThis.sb.from('locations').insert({ event_id: currentEventId, name, sort_order: nextOrder });
+                document.getElementById('newPointName').value = "";
+                await fetchSupabaseData(true);
+            } catch (err) { alert("追加失敗: " + err.message); }
+        }
+
         async function sendBBSMessage() {
             if (!globalThis.sb || !currentEventId) return;
             const name = document.getElementById('msgName').value.trim();
@@ -685,6 +795,27 @@
                     document.getElementById('msgBody').value = "";
                 }
             } catch (err) { alert("送信失敗: " + err.message); }
+        }
+
+        function startBBSEdit(id) {
+            const msg = bbsMessages.find(m => String(m.id) === String(id));
+            if (!msg) return;
+            document.getElementById('editMsgId').value = msg.id;
+            document.getElementById('msgName').value = msg.name || "";
+            document.getElementById('msgBody').value = msg.body || "";
+            document.getElementById('bbsFormTitle').innerHTML = `<i class="fas fa-edit text-yellow-500"></i> メッセージの編集モード`;
+            document.getElementById('btnBBSSubmit').innerText = "更新";
+            document.getElementById('btnBBSSubmit').className = "bg-yellow-500 text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition active:scale-[0.95] shrink-0";
+            document.getElementById('btnCancelEdit').classList.remove('hidden');
+        }
+
+        function cancelBBSEdit() {
+            document.getElementById('editMsgId').value = "";
+            document.getElementById('msgBody').value = "";
+            document.getElementById('bbsFormTitle').innerHTML = `<i class="fas fa-comment-dots"></i> 現場全体へメッセージを一斉送信`;
+            document.getElementById('btnBBSSubmit').innerText = "送信";
+            document.getElementById('btnBBSSubmit').className = "bg-accentGreen text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition active:scale-[0.95] shrink-0";
+            document.getElementById('btnCancelEdit').classList.add('hidden');
         }
 
         async function addGear() {
@@ -1061,121 +1192,10 @@
             }
         }
 
-        // 💡 【修正確定箇所】「//」を追加してコメント化漏れを完全修正
-        // Taraget処理
-        function handleDragStart(e) {
-            dragTargetElement = e.currentTarget;
-            e.currentTarget.classList.add('sortable-dragging');
-            e.dataTransfer.effectAllowed = 'move';
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            if (!dragTargetElement || e.currentTarget === dragTargetElement) return;
-            
-            const container = document.getElementById('locationManagerList');
-            const items = [...container.querySelectorAll('.sortable-item')];
-            const currentIdx = items.indexOf(dragTargetElement);
-            const targetIdx = items.indexOf(e.currentTarget);
-            
-            if (currentIdx < targetIdx) {
-                e.currentTarget.after(dragTargetElement);
-            } else {
-                e.currentTarget.before(dragTargetElement);
-            }
-        }
-
-        function handleDragEnd(e) {
-            e.currentTarget.classList.remove('sortable-dragging');
-            dragTargetElement = null;
-            rebuildRawLocationsFromDOM();
-        }
-
-        function moveLocationRow(index, direction) {
-            const targetIndex = index + direction;
-            if (targetIndex < 0 || targetIndex >= rawCloudLocations.length) return;
-            
-            const temp = rawCloudLocations[index];
-            rawCloudLocations[index] = rawCloudLocations[targetIndex];
-            rawCloudLocations[targetIndex] = temp;
-            
-            renderLocationManagerList();
-            document.getElementById('lblOrderSavedStatus').innerText = "⚠️ 順序変更未保存";
-            document.getElementById('lblOrderSavedStatus').className = "text-[10px] font-bold text-yellow-500 font-mono";
-        }
-
-        function rebuildRawLocationsFromDOM() {
-            const container = document.getElementById('locationManagerList');
-            const items = [...container.querySelectorAll('.sortable-item')];
-            
-            const newOrderedList = items.map(item => {
-                const id = parseInt(item.getAttribute('data-loc-id'));
-                return rawCloudLocations.find(l => l.id === id);
-            });
-            
-            rawCloudLocations = newOrderedList;
-            document.getElementById('lblOrderSavedStatus').innerText = "⚠️ 順序変更未保存";
-            document.getElementById('lblOrderSavedStatus').className = "text-[10px] font-bold text-yellow-500 font-mono";
-        }
-
-        async function saveLocationOrder() {
-            if (userRole !== 'admin' || !globalThis.sb || !currentEventId) return;
-            
-            const labelStatus = document.getElementById('lblOrderSavedStatus');
-            labelStatus.innerText = "⏳ 順序書き込み中...";
-            labelStatus.className = "text-[10px] font-bold text-slate-400 font-mono animate-pulse";
-            
-            try {
-                const promises = rawCloudLocations.map((loc, index) => {
-                    return globalThis.sb
-                        .from('locations')
-                        .update({ sort_order: index + 1 })
-                        .eq('id', loc.id);
-                });
-                
-                await Promise.all(promises);
-                
-                labelStatus.innerText = "✅ 並び順を保存完了";
-                labelStatus.className = "text-[10px] font-bold text-accentGreen font-mono";
-                
-                await fetchSupabaseData(true);
-            } catch (err) {
-                alert("並び順の保存に失敗しました: " + err.message);
-                labelStatus.innerText = "❌ 保存失敗";
-                labelStatus.className = "text-[10px] font-bold text-rose-500 font-mono";
-            }
-        }
-
-        async function updateLocationName(id, newName) {
-            if (userRole !== 'admin') return;
-            const cleanName = newName.trim(); if (!cleanName) return alert("名称を入力してください。");
-            const target = rawCloudLocations.find(l => l.id === id); if (!target) return;
-            const oldName = target.name;
-            try {
-                await globalThis.sb.from('locations').update({ name: cleanName }).eq('id', id);
-                await globalThis.sb.from('event_assignments').update({ location: cleanName }).eq('event_id', currentEventId).eq('location', oldName);
-                target.name = cleanName;
-                const idx = locations.indexOf(oldName);
-                if (idx !== -1) locations[idx] = cleanName;
-                updateSelectBoxes();
-                renderTable();
-            } catch (err) { alert("名称の変更に失敗しました: " + err.message); }
-        }
-
-        async function deleteLocationPoint(id, name) {
-            if (userRole !== 'admin') return;
-            if (!confirm(`配置先「${name}」を削除しますか？`)) return;
-            try {
-                await globalThis.sb.from('event_assignments').update({ location: 'no assign' }).eq('event_id', currentEventId).eq('location', name);
-                await globalThis.sb.from('locations').delete().eq('id', id);
-                await fetchSupabaseData(true);
-            } catch (err) { alert("削除失敗: " + err.message); }
-        }
-
         document.addEventListener("DOMContentLoaded", () => {
             applyRoleRestrictions();
             const cachedName = localStorage.getItem('ekiden_bbs_name');
-            if(cachedName) document.getElementById('msgName').value = cachedName;
+            if(cachedName && document.getElementById('msgName')) document.getElementById('msgName').value = cachedName;
             loadEventMenu();
         });
     </script>
