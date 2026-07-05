@@ -30,7 +30,7 @@
     </script>
     
     <style>
-        /* 💡 ホーム画面起動時のノッチや底面インジケーターによる型崩れを防ぐ設定 */
+        /* PWAスタンドアロン起動時の型崩れ防止 */
         body {
             padding-top: env(safe-area-inset-top, 20px);
             padding-bottom: env(safe-area-inset-bottom, 20px);
@@ -54,7 +54,7 @@
                 <label class="block text-[10px] text-slate-400 mb-1 font-bold uppercase tracking-wider">ユーザーID / User ID</label>
                 <div class="relative flex items-center w-full">
                     <i class="fas fa-user absolute left-4 text-slate-500 pointer-events-none z-10 text-sm"></i>
-                    <input type="text" id="loginId" placeholder="ユーザーIDを入力" class="w-full bg-bgDark border border-borderStroke rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:border-accentGreen font-sans placeholder-slate-600 block transition-all">
+                    <input type="text" id="loginId" placeholder="ユーザーIDを入力（例: admin）" class="w-full bg-bgDark border border-borderStroke rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:border-accentGreen font-sans placeholder-slate-600 block transition-all">
                 </div>
             </div>
 
@@ -82,7 +82,7 @@
 
     <div id="loadingOverlay" class="fixed inset-0 bg-bgDark/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-2 hidden">
         <div class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
-        <p class="text-[10px] text-slate-400 font-mono tracking-widest">VERIFYING SECURE SESSION...</p>
+        <p class="text-[10px] text-slate-400 font-mono tracking-widest">AUTHENTICATING SECURE SESSION...</p>
     </div>
 
     <script>
@@ -115,37 +115,42 @@
             errorBox.classList.add('hidden');
             loading.classList.remove('hidden');
 
+            // 💡 【超重要】入力されたIDがプレーン文字列の場合、後ろにダミードメインを結合してEmail化する
+            // もし実際にSupabase Authenticationに登録しているドメインが「@example.com」以外（例: @gmail.com等）の場合は、
+            // 下の `@example.com` の文字列をそのドメインに書き換えてください。
+            const email = inputId.includes('@') ? inputId : `${inputId}@example.com`;
+
             try {
-                // 💡 【修正点】メールアドレス認証を完全排除。以前の「テーブル内のプレーンID照合方式」に戻しました。
-                // アカウント情報が入っている「users」テーブルを直接検索します。
-                const { data: userRecords, error: dbError } = await sb
-                    .from('users') 
-                    .select('*')
-                    .eq('username', inputId)
-                    .eq('password', password);
+                // 内部では公式のAuth機能を利用
+                const { data, error } = await sb.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
 
-                if (dbError) throw dbError;
+                if (error) throw error;
 
-                // IDとパスワードが完全一致するレコードが存在した場合
-                if (userRecords && userRecords.length > 0) {
-                    const targetUser = userRecords[0];
-
-                    // index.htmlのログインガードを解除するためのセッションを生成して保存
-                    localStorage.setItem('ekiden_secure_session', 'true_' + Date.now());
+                if (data && data.session) {
+                    // index.htmlの認証ガード用セッションを設定
+                    localStorage.setItem('ekiden_secure_session', data.session.access_token);
                     
-                    // データベースに登録されているロール（admin/staff/viewer）をそのまま引き継ぐ
-                    let role = targetUser.role || "viewer";
-                    localStorage.setItem('ekiden_user_role', role);
+                    // 入力された文字列の判定からロールを割り振る
+                    let userRole = "admin"; 
+                    if (inputId.toLowerCase().includes('viewer')) {
+                        userRole = "viewer";
+                    } else if (inputId.toLowerCase().includes('staff')) {
+                        userRole = "staff";
+                    }
+                    localStorage.setItem('ekiden_user_role', userRole);
 
-                    // PWA最適化された index.html へ安全に遷移
+                    // PWA最適化が施された index.html へ
                     window.location.href = "index.html";
                 } else {
-                    throw new Error("ユーザーIDまたはパスワードが正しくありません。");
+                    throw new Error("セッションの確立に失敗しました。");
                 }
 
             } catch (err) {
                 console.error("Login Error:", err);
-                errorText.innerText = err.message || "認証エラーが発生しました。";
+                errorText.innerText = "ユーザーIDまたはパスワードが正しくありません。";
                 errorBox.classList.remove('hidden');
             } finally {
                 loading.classList.add('hidden');
