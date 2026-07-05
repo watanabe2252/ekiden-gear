@@ -203,8 +203,8 @@
                     <div id="imageUploadControls" class="space-y-1.5 w-full text-left">
                         <input type="file" id="editImageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
                         <div class="flex gap-1.5 flex-wrap">
-                            <button id="btnCameraUpload" onclick="document.getElementById('editImageInput').click()" class="bg-slate-800 text-yellow-400 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl font-bold text-[10px] whitespace-nowrap transition active:scale-95"><i class="fas fa-camera mr-1"></i> 写真を追加・変更</button>
-                            <button id="deleteImageBtn" onclick="deleteGearImage()" class="bg-slate-950 text-rose-500 border border-borderStroke px-3 py-2 rounded-xl font-bold text-[10px] hidden whitespace-nowrap transition active:scale-95">削除</button>
+                            <button id="btnCameraUpload" onclick="document.getElementById('editImageInput').click()" class="bg-slate-800 text-yellow-400 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl font-bold text-[10px] whitespace-nowrap transition active:scale-[0.95]"><i class="fas fa-camera mr-1"></i> 写真を追加・変更</button>
+                            <button id="deleteImageBtn" onclick="deleteGearImage()" class="bg-slate-950 text-rose-500 border border-borderStroke px-3 py-2 rounded-xl font-bold text-[10px] hidden whitespace-nowrap transition active:scale-[0.95]">削除</button>
                         </div>
                     </div>
                 </div>
@@ -253,7 +253,7 @@
                 </button>
                 <div class="flex gap-1.5 ml-auto">
                     <button onclick="closeMaintModal()" class="bg-slate-800 text-gray-300 px-3 py-1.5 rounded-lg font-bold text-xs">閉じる</button>
-                    <button id="btnModalSave" onclick="saveMaintenanceData()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black px-4 py-1.5 rounded-lg text-xs whitespace-nowrap transition active:scale-95">変更を保存</button>
+                    <button id="btnModalSave" onclick="saveMaintenanceData()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black px-4 py-1.5 rounded-lg text-xs whitespace-nowrap transition active:scale-[0.95]">変更を保存</button>
                 </div>
             </div>
         </div>
@@ -273,13 +273,13 @@
                 </p>
             </div>
             <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                <button onclick="manualRefreshData()" id="btnManualRefresh" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-[10px] px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-1">
+                <button onclick="manualRefreshData()" id="btnManualRefresh" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-[10px] px-2.5 py-1 rounded-full transition active:scale-[0.95] flex items-center gap-1">
                     <i class="fas fa-sync-alt" id="iconRefresh"></i> 同期
                 </button>
                 <div class="hidden bg-cardBg border border-borderStroke px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-400">
                     配置: <span id="totalBadge" class="text-white font-black">0</span> 点
                 </div>
-                <button onclick="handleLogout()" class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-full transition active:scale-95 flex items-center gap-1">
+                <button onclick="handleLogout()" class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-full transition active:scale-[0.95] flex items-center gap-1">
                     <i class="fas fa-sign-out-alt"></i> ログアウト
                 </button>
             </div>
@@ -294,7 +294,7 @@
                     </div>
                     <div class="flex-1 md:flex-none md:w-40 flex items-center gap-1">
                         <select id="filterLocation" onchange="renderTable()" class="w-full bg-bgDark border border-borderStroke rounded-lg py-1.5 px-2 text-xs text-white focus:border-accentGreen outline-none"></select>
-                        <button id="btnOpenLocationManager" onclick="openLocationManagerModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-slate-700 p-2 rounded-lg text-xs transition active:scale-95 shrink-0">
+                        <button id="btnOpenLocationManager" onclick="openLocationManagerModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 border border-slate-700 p-2 rounded-lg text-xs transition active:scale-[0.95] shrink-0">
                             <i class="fas fa-sort-amount-down-alt"></i>
                         </button>
                     </div>
@@ -305,7 +305,7 @@
                         <i class="fas fa-map-marker-alt absolute left-3 text-yellow-500 text-[10px] pointer-events-none z-10"></i>
                         <input type="text" id="newPointName" placeholder="新配置先（例: 3中継点）" class="w-full bg-bgDark border border-borderStroke rounded-lg pr-2 py-1.5 text-xs text-white focus:border-yellow-500 outline-none">
                     </div>
-                    <button onclick="addLocationPoint()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black text-[10px] px-3 py-2 rounded-lg transition active:scale-95 shrink-0 whitespace-nowrap">
+                    <button onclick="addLocationPoint()" class="bg-yellow-500 hover:bg-yellow-600 text-bgDark font-black text-[10px] px-3 py-2 rounded-lg transition active:scale-[0.95] shrink-0 whitespace-nowrap">
                         📍 配置先追加
                     </button>
                 </div>
@@ -328,7 +328,7 @@
                     <input type="hidden" id="editMsgId">
                     <input type="text" id="msgName" placeholder="投稿者名" class="sm:w-1/4 bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none focus:border-accentGreen">
                     <input type="text" id="msgBody" placeholder="連絡事項を入力..." class="flex-1 bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none focus:border-accentGreen" onkeypress="if(event.key === 'Enter') sendBBSMessage()">
-                    <button id="btnBBSSubmit" onclick="sendBBSMessage()" class="bg-accentGreen hover:bg-emerald-600 text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition active:scale-95 shrink-0">送信</button>
+                    <button id="btnBBSSubmit" onclick="sendBBSMessage()" class="bg-accentGreen hover:bg-emerald-600 text-bgDark font-black text-xs px-4 py-1.5 rounded-lg transition active:scale-[0.95] shrink-0">送信</button>
                 </div>
             </div>
             <div class="bg-cardBg border border-borderStroke rounded-xl shadow-xl flex-1 overflow-hidden flex flex-col">
@@ -369,7 +369,7 @@
                         <input type="text" id="addMfr" placeholder="例: ICOM" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
                     </div>
                 </div>
-                <button onclick="addGear()" class="w-full bg-accentGreen text-bgDark font-black text-xs py-2 rounded-lg transition active:scale-95">マスターに追加 ＆ 大会へアサイン</button>
+                <button onclick="addGear()" class="w-full bg-accentGreen text-bgDark font-black text-xs py-2 rounded-lg transition active:scale-[0.95]">マスターに追加 ＆ 大会へアサイン</button>
             </div>
             
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-2">
@@ -384,7 +384,7 @@
                         <select id="assignLoc" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none"></select>
                     </div>
                 </div>
-                <button onclick="assignExistingGear()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-black text-xs py-2 rounded-lg transition active:scale-95">機材をアサイン追加</button>
+                <button onclick="assignExistingGear()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-black text-xs py-2 rounded-lg transition active:scale-[0.95]">機材をアサイン追加</button>
             </div>
         </div>
 
@@ -720,8 +720,6 @@
             } catch (err) { alert(err.message); } finally { showLoading(false); }
         }
 
-        // 💡 【超重要：画像保存バグの修正箇所】
-        // 変更を保存する際、新しくアップロードした画像パス（currentUploadedUrl）をデータベースに確実に同期
         async function saveMaintenanceData() {
             if (!globalThis.sb) return;
             const id = document.getElementById('editTargetId').value;
@@ -730,7 +728,6 @@
             if (!name || !category) return alert("入力が不足しています。");
             showLoading(true, "SAVING...");
             try {
-                // gearsテーブルに、最新の image_url カラムの値をしっかりとコミットします。
                 const { error: updateError } = await globalThis.sb.from('gears').update({
                     name, 
                     category, 
@@ -739,13 +736,13 @@
                     serial: document.getElementById('editSerial').value.trim(), 
                     asset: document.getElementById('editAsset').value.trim(),
                     attachments: document.getElementById('editAttachments').value.trim(), 
-                    image_url: currentUploadedUrl // 💡 最新のアップロードURLをここに確実に書き込み
+                    image_url: currentUploadedUrl
                 }).eq('id', id);
 
                 if (updateError) throw updateError;
 
                 closeMaintModal();
-                await fetchSupabaseData(true); // 画面データを最新状態に再同期
+                await fetchSupabaseData(true);
             } catch(err) { 
                 alert("変更の保存に失敗しました: " + err.message); 
             } finally { 
@@ -827,7 +824,6 @@
             `).join('');
         }
 
-         Taraget処理
         function handleDragStart(e) {
             dragTargetElement = e.currentTarget;
             e.currentTarget.classList.add('sortable-dragging');
@@ -1029,17 +1025,14 @@
         
         function closeMaintModal() { document.getElementById('maintModal').classList.add('hidden'); }
 
-        // 💡 【修正点：画像プレビュー描画処理の強化】
         function refreshModalImagePreview() {
             const container = document.getElementById('imagePreviewContainer');
             const deleteBtn = document.getElementById('deleteImageBtn');
             
             if (currentUploadedUrl && currentUploadedUrl.trim() !== "") {
-                // 画像URLが存在する場合は、プレビュー枠いっぱいに収まるよう綺麗にCSS配置
                 container.innerHTML = `<img src="${currentUploadedUrl}" class="w-full h-full object-cover rounded-xl shadow-md">`;
                 if(deleteBtn && !globalThis.isViewerMode) deleteBtn.classList.remove('hidden');
             } else {
-                // 画像がないか、または「?」マークのような初期値状態の場合はNO IMAGEアイコンを出力
                 container.innerHTML = `<i class="fas fa-image text-2xl text-slate-700 mb-1"></i><span class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">NO IMAGE</span>`;
                 if(deleteBtn) deleteBtn.classList.add('hidden');
             }
@@ -1047,23 +1040,18 @@
         
         function deleteGearImage() { currentUploadedUrl = ""; refreshModalImagePreview(); }
 
-        // 💡 【画像アップロード時の同期処理の強化】
         async function handleImageUpload(event) {
             if (!globalThis.sb) return;
             const file = event.target.files[0]; if (!file) return;
             showLoading(true, "写真データを処理中...");
             try {
-                // ファイル名をミリ秒単位の一意なIDで生成
                 const filePath = `${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
                 
-                // Supabase Storageの「gear-images」バケットへバイナリ直接送信
                 const { error: uploadError } = await globalThis.sb.storage.from('gear-images').upload(filePath, file);
                 if (uploadError) throw uploadError;
 
-                // 保存先からの公開アクセスURL（パブリックURL）を取得
                 const { data } = globalThis.sb.storage.from('gear-images').getPublicUrl(filePath);
                 
-                // プレビュー用に一時保持し、即座にモーダル枠を更新
                 currentUploadedUrl = data.publicUrl; 
                 refreshModalImagePreview();
             } catch (err) { 
@@ -1073,61 +1061,115 @@
             }
         }
 
-        function startBBSEdit(id) {
-            const msg = bbsMessages.find(m => String(m.id) === String(id)); if (!msg) return;
-            document.getElementById('editMsgId').value = msg.id;
-            document.getElementById('msgName').value = msg.name || "";
-            document.getElementById('msgBody').value = msg.body || "";
-            document.getElementById('bbsFormContainer').className = "bg-cardBg border border-yellow-500/50 p-3 rounded-xl shrink-0 space-y-2";
-            document.getElementById('bbsFormTitle').innerHTML = `<i class="fas fa-edit animate-pulse"></i> 投稿メッセージを編集・上書き中`;
-            document.getElementById('btnBBSSubmit').innerHTML = `保存`;
-            document.getElementById('btnCancelEdit').classList.remove('hidden');
-            document.getElementById('msgBody').focus();
+        // 💡 【修正確定箇所】「//」を追加してコメント化漏れを完全修正
+        // Taraget処理
+        function handleDragStart(e) {
+            dragTargetElement = e.currentTarget;
+            e.currentTarget.classList.add('sortable-dragging');
+            e.dataTransfer.effectAllowed = 'move';
         }
 
-        function cancelBBSEdit() {
-            document.getElementById('editMsgId').value = ""; document.getElementById('msgBody').value = "";
-            document.getElementById('bbsFormContainer').className = "bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2";
-            document.getElementById('bbsFormTitle').innerHTML = `<i class="fas fa-comment-dots"></i> 現場全体へメッセージを一斉送信`;
-            document.getElementById('btnBBSSubmit').innerHTML = `送信`;
-            document.getElementById('btnCancelEdit').classList.add('hidden');
+        function handleDragOver(e) {
+            e.preventDefault();
+            if (!dragTargetElement || e.currentTarget === dragTargetElement) return;
+            
+            const container = document.getElementById('locationManagerList');
+            const items = [...container.querySelectorAll('.sortable-item')];
+            const currentIdx = items.indexOf(dragTargetElement);
+            const targetIdx = items.indexOf(e.currentTarget);
+            
+            if (currentIdx < targetIdx) {
+                e.currentTarget.after(dragTargetElement);
+            } else {
+                e.currentTarget.before(dragTargetElement);
+            }
         }
 
-        function showLoading(show, text = "") {
-            const screen = document.getElementById('loadingScreen');
-            if (show) { document.getElementById('loadingText').innerText = text; screen.classList.remove('hidden'); } else { screen.classList.add('hidden'); }
-        }
-        function forceOpenApp() { document.getElementById('loadingScreen').classList.add('hidden'); }
-
-        function switchTab(tab) {
-            document.getElementById('pageList').classList.toggle('hidden', tab !== 'list');
-            document.getElementById('pageBBS').classList.toggle('hidden', tab !== 'bbs');
-            document.getElementById('pageRegister').classList.toggle('hidden', tab !== 'register');
-            document.getElementById('pageMaintenance').classList.toggle('hidden', tab !== 'maintenance');
-            document.getElementById('navList').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'list' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navBBS').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'bbs' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navRegister').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'register' ? 'text-accentGreen' : 'text-gray-500'}`;
-            document.getElementById('navMaint').className = `flex flex-col items-center gap-0.5 text-[9px] font-bold flex-1 min-w-0 whitespace-nowrap ${tab === 'maintenance' ? 'text-accentGreen' : 'text-gray-500'}`;
+        function handleDragEnd(e) {
+            e.currentTarget.classList.remove('sortable-dragging');
+            dragTargetElement = null;
+            rebuildRawLocationsFromDOM();
         }
 
-        function updateSelectBoxes() {
-            const optionsAll = '<option value="ALL">📍 すべて</option>' + locations.map(loc => `<option value="${loc}">📍 ${loc}</option>`).join('');
-            const optionsPure = locations.map(loc => `<option value="${loc}">📍 ${loc}</option>`).join('');
-            if (document.getElementById('filterLocation')) document.getElementById('filterLocation').innerHTML = optionsAll;
-            if (document.getElementById('addLoc')) document.getElementById('addLoc').innerHTML = optionsPure;
-            if (document.getElementById('assignLoc')) document.getElementById('assignLoc').innerHTML = optionsPure;
+        function moveLocationRow(index, direction) {
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= rawCloudLocations.length) return;
+            
+            const temp = rawCloudLocations[index];
+            rawCloudLocations[index] = rawCloudLocations[targetIndex];
+            rawCloudLocations[targetIndex] = temp;
+            
+            renderLocationManagerList();
+            document.getElementById('lblOrderSavedStatus').innerText = "⚠️ 順序変更未保存";
+            document.getElementById('lblOrderSavedStatus').className = "text-[10px] font-bold text-yellow-500 font-mono";
         }
 
-        async function addLocationPoint() {
-            if (userRole === 'viewer') return alert("権限がありません。");
-            const input = document.getElementById('newPointName'); const name = input.value.trim();
-            if (!name) return alert("配置先名を入力してください。");
-            if (locations.includes(name)) return alert("すでに登録されています。");
-            try { 
-                await globalThis.sb.from('locations').insert([{ event_id: currentEventId, name }]); 
-                input.value = ""; 
+        function rebuildRawLocationsFromDOM() {
+            const container = document.getElementById('locationManagerList');
+            const items = [...container.querySelectorAll('.sortable-item')];
+            
+            const newOrderedList = items.map(item => {
+                const id = parseInt(item.getAttribute('data-loc-id'));
+                return rawCloudLocations.find(l => l.id === id);
+            });
+            
+            rawCloudLocations = newOrderedList;
+            document.getElementById('lblOrderSavedStatus').innerText = "⚠️ 順序変更未保存";
+            document.getElementById('lblOrderSavedStatus').className = "text-[10px] font-bold text-yellow-500 font-mono";
+        }
+
+        async function saveLocationOrder() {
+            if (userRole !== 'admin' || !globalThis.sb || !currentEventId) return;
+            
+            const labelStatus = document.getElementById('lblOrderSavedStatus');
+            labelStatus.innerText = "⏳ 順序書き込み中...";
+            labelStatus.className = "text-[10px] font-bold text-slate-400 font-mono animate-pulse";
+            
+            try {
+                const promises = rawCloudLocations.map((loc, index) => {
+                    return globalThis.sb
+                        .from('locations')
+                        .update({ sort_order: index + 1 })
+                        .eq('id', loc.id);
+                });
+                
+                await Promise.all(promises);
+                
+                labelStatus.innerText = "✅ 並び順を保存完了";
+                labelStatus.className = "text-[10px] font-bold text-accentGreen font-mono";
+                
                 await fetchSupabaseData(true);
-            } catch (err) { alert("追加失敗: " + err.message); }
+            } catch (err) {
+                alert("並び順の保存に失敗しました: " + err.message);
+                labelStatus.innerText = "❌ 保存失敗";
+                labelStatus.className = "text-[10px] font-bold text-rose-500 font-mono";
+            }
+        }
+
+        async function updateLocationName(id, newName) {
+            if (userRole !== 'admin') return;
+            const cleanName = newName.trim(); if (!cleanName) return alert("名称を入力してください。");
+            const target = rawCloudLocations.find(l => l.id === id); if (!target) return;
+            const oldName = target.name;
+            try {
+                await globalThis.sb.from('locations').update({ name: cleanName }).eq('id', id);
+                await globalThis.sb.from('event_assignments').update({ location: cleanName }).eq('event_id', currentEventId).eq('location', oldName);
+                target.name = cleanName;
+                const idx = locations.indexOf(oldName);
+                if (idx !== -1) locations[idx] = cleanName;
+                updateSelectBoxes();
+                renderTable();
+            } catch (err) { alert("名称の変更に失敗しました: " + err.message); }
+        }
+
+        async function deleteLocationPoint(id, name) {
+            if (userRole !== 'admin') return;
+            if (!confirm(`配置先「${name}」を削除しますか？`)) return;
+            try {
+                await globalThis.sb.from('event_assignments').update({ location: 'no assign' }).eq('event_id', currentEventId).eq('location', name);
+                await globalThis.sb.from('locations').delete().eq('id', id);
+                await fetchSupabaseData(true);
+            } catch (err) { alert("削除失敗: " + err.message); }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
