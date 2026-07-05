@@ -44,13 +44,10 @@
         ::-webkit-scrollbar-thumb { background: #1e2538; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #10b981; }
         
-        /* 💡 iPhoneでのホーム画面アプリ起動時（スタンドアロン）のレイアウト崩れを防ぐ超堅牢CSS設定 */
+        /* 💡 iOSウェブアプリ（ホーム画面追加）時の上下セーフエリア型崩れ防止設定 */
         body {
-            /* 上部のノッチ・Dynamic Island・ステータスバー被りを完全防御 */
             padding-top: env(safe-area-inset-top, 20px);
-            /* 下部のボトムバーがホームインジケーター（画面下の横棒）に被って押し潰されるのを防止 */
             padding-bottom: env(safe-area-inset-bottom, 20px);
-            /* 高さを動的ビューポートに固定し、キーボード立ち上がり時等の崩れを防止 */
             height: 100dvh;
             max-height: 100dvh;
         }
@@ -197,7 +194,7 @@
                 <button onclick="manualRefreshData()" id="btnManualRefresh" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-[10px] px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-1">
                     <i class="fas fa-sync-alt" id="iconRefresh"></i> 同期
                 </button>
-                <div class="bg-cardBg border border-borderStroke px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-400">
+                <div class="hidden bg-cardBg border border-borderStroke px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-400">
                     配置: <span id="totalBadge" class="text-white font-black">0</span> 点
                 </div>
                 <button onclick="handleLogout()" class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-full transition active:scale-95 flex items-center gap-1">
@@ -801,6 +798,8 @@
             const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
             const filterLoc = document.getElementById('filterLocation').value;
+            
+            // 💡 内部の件数計算用ロジックは残しつつ、表示バッジはhiddenにしています
             document.getElementById('totalBadge').innerText = gears.length;
 
             let displayData = gears.filter(gear => {
