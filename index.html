@@ -71,6 +71,7 @@
 </head>
 <body class="bg-bgDark text-slate-100 overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
 
+    <!-- 同期・ローディング画面 -->
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
         <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
         <p id="loadingText" class="text-[10px] text-slate-400 font-mono tracking-widest">CONNECTING TO SUPABASE...</p>
@@ -83,6 +84,7 @@
         </div>
     </div>
 
+    <!-- 大会ファイル選択メニュー -->
     <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center hidden">
         <div class="max-w-md w-full bg-cardBg border border-borderStroke p-5 rounded-2xl shadow-2xl space-y-4">
             <div class="border-b border-borderStroke pb-3 flex justify-between items-center gap-2">
@@ -104,6 +106,7 @@
         </div>
     </div>
 
+    <!-- 新規番組作成モーダル -->
     <div id="createEventModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeCreateEventModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-sm rounded-xl overflow-hidden shadow-2xl p-4 space-y-4" onclick="event.stopPropagation()">
             <div class="border-b border-borderStroke pb-2 flex justify-between items-center">
@@ -131,6 +134,7 @@
         </div>
     </div>
 
+    <!-- 番組ファイル編集モーダル -->
     <div id="editEventModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeEditEventModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-sm rounded-xl overflow-hidden shadow-2xl p-4 space-y-4" onclick="event.stopPropagation()">
             <div class="border-b border-borderStroke pb-2 flex justify-between items-center">
@@ -171,6 +175,7 @@
         </div>
     </div>
 
+    <!-- 配置先編集・並び替えモーダル -->
     <div id="locationManagerModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeLocationManagerModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-md rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]" onclick="event.stopPropagation()">
             <div class="bg-slate-900 px-4 py-3 border-b border-borderStroke flex justify-between items-center shrink-0">
@@ -193,6 +198,7 @@
         </div>
     </div>
 
+    <!-- 詳細モーダル基盤 -->
     <div id="maintModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden" onclick="closeMaintModal()">
         <div class="bg-cardBg border border-borderStroke w-full max-w-xl rounded-xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col" onclick="event.stopPropagation()">
             <div class="bg-slate-900 px-4 py-3 border-b border-borderStroke flex justify-between items-center shrink-0">
@@ -262,8 +268,10 @@
         </div>
     </div>
 
+    <!-- メインアプリコンテンツ基盤 -->
     <div id="mainAppContent" class="max-w-6xl mx-auto w-full flex flex-col h-full overflow-hidden space-y-2.5 hidden">
         
+        <!-- 上部ヘッダー -->
         <div class="flex justify-between items-center border-b border-borderStroke pb-2 shrink-0 gap-2">
             <div class="min-w-0">
                 <h1 class="text-sm md:text-lg font-black text-white flex items-center gap-1.5 truncate">
@@ -288,6 +296,7 @@
             </div>
         </div>
 
+        <!-- タブ1: 機材配置 -->
         <div id="pageList" class="flex-1 flex flex-col overflow-hidden space-y-2">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl flex flex-col md:flex-row gap-2 items-center justify-between shrink-0">
                 <div class="flex flex-row w-full md:w-auto gap-1.5 items-center flex-1">
@@ -319,6 +328,7 @@
             </div>
         </div>
 
+        <!-- タブ2: 現場掲示板 -->
         <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 hidden">
             <div id="bbsFormContainer" class="bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2 transition-colors duration-200">
                 <div class="flex justify-between items-center">
@@ -339,6 +349,7 @@
             </div>
         </div>
 
+        <!-- タブ3: データ登録 -->
         <div id="pageRegister" class="max-w-xl mx-auto w-full space-y-4 hidden pb-28 overflow-y-auto">
             <div class="bg-cardBg border border-borderStroke p-4 rounded-xl space-y-3">
                 <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5"><i class="fas fa-plus-circle"></i> 新規機材の登録</h3>
@@ -391,6 +402,7 @@
             </div>
         </div>
 
+        <!-- タブ4: 管理設定 -->
         <div id="pageMaintenance" class="space-y-2 hidden flex-1 flex flex-col overflow-hidden">
             <div class="bg-cardBg border border-borderStroke p-2 rounded-xl shrink-0">
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
@@ -411,6 +423,7 @@
         </div>
     </div>
 
+    <!-- 下部固定ナビゲーションバー -->
     <div id="bottomNavBar" class="fixed bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-md border-t border-borderStroke z-30 px-2 py-1.5 flex justify-around items-center text-center hidden">
         <button id="navList" onclick="switchTab('list')" class="flex-1 py-1 text-accentGreen flex flex-col items-center gap-0.5">
             <i class="fas fa-layer-group text-base"></i><span class="text-[9px] font-bold">機材配置</span>
@@ -472,7 +485,6 @@
             }
         }
 
-        // 💡 【修正確定箇所】HTML上の有無に関わらず、絶対にnull落ちクラッシュしないよう安全ガード付きロジックに修正
         function switchTab(tab) {
             const tabs = {
                 list: document.getElementById('pageList'),
@@ -915,6 +927,35 @@
         
         function closeLocationManagerModal() { document.getElementById('locationManagerModal')?.classList.add('hidden'); }
 
+        // 💡 【大元修復箇所】ドラッグ＆ドロップ用関数群を完全復活配置
+        function handleDragStart(e) {
+            dragTargetElement = e.currentTarget;
+            e.currentTarget.classList.add('sortable-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            if (!dragTargetElement || e.currentTarget === dragTargetElement) return;
+            
+            const container = document.getElementById('locationManagerList');
+            const items = [...container?.querySelectorAll('.sortable-item') || []];
+            const currentIdx = items.indexOf(dragTargetElement);
+            const targetIdx = items.indexOf(e.currentTarget);
+            
+            if (currentIdx < targetIdx) {
+                e.currentTarget.after(dragTargetElement);
+            } else {
+                e.currentTarget.before(dragTargetElement);
+            }
+        }
+
+        function handleDragEnd(e) {
+            e.currentTarget.classList.remove('sortable-dragging');
+            dragTargetElement = null;
+            rebuildRawLocationsFromDOM();
+        }
+
         function renderLocationManagerList() {
             const container = document.getElementById('locationManagerList');
             if (!container) return;
@@ -952,34 +993,6 @@
                     </button>
                 </div>
             `).join('');
-        }
-
-        function handleDragStart(e) {
-            dragTargetElement = e.currentTarget;
-            e.currentTarget.classList.add('sortable-dragging');
-            e.dataTransfer.effectAllowed = 'move';
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            if (!dragTargetElement || e.currentTarget === dragTargetElement) return;
-            
-            const container = document.getElementById('locationManagerList');
-            const items = [...container?.querySelectorAll('.sortable-item') || []];
-            const currentIdx = items.indexOf(dragTargetElement);
-            const targetIdx = items.indexOf(e.currentTarget);
-            
-            if (currentIdx < targetIdx) {
-                e.currentTarget.after(dragTargetElement);
-            } else {
-                e.currentTarget.before(dragTargetElement);
-            }
-        }
-
-        function handleDragEnd(e) {
-            e.currentTarget.classList.remove('sortable-dragging');
-            dragTargetElement = null;
-            rebuildRawLocationsFromDOM();
         }
 
         function moveLocationRow(index, direction) {
@@ -1171,6 +1184,42 @@
         }
         
         function closeMaintModal() { document.getElementById('maintModal')?.classList.add('hidden'); }
+
+        function refreshModalImagePreview() {
+            const container = document.getElementById('imagePreviewContainer');
+            const deleteBtn = document.getElementById('deleteImageBtn');
+            
+            if (currentUploadedUrl && currentUploadedUrl.trim() !== "") {
+                if(container) container.innerHTML = `<img src="${currentUploadedUrl}" class="w-full h-full object-cover rounded-xl shadow-md">`;
+                if(deleteBtn && !globalThis.isViewerMode) deleteBtn.classList.remove('hidden');
+            } else {
+                if(container) container.innerHTML = `<i class="fas fa-image text-2xl text-slate-700 mb-1"></i><span class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">NO IMAGE</span>`;
+                if(deleteBtn) deleteBtn.classList.add('hidden');
+            }
+        }
+        
+        function deleteGearImage() { currentUploadedUrl = ""; refreshModalImagePreview(); }
+
+        async function handleImageUpload(event) {
+            if (!globalThis.sb) return;
+            const file = event.target.files[0]; if (!file) return;
+            showLoading(true, "写真データを処理中...");
+            try {
+                const filePath = `${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
+                
+                const { error: uploadError } = await globalThis.sb.storage.from('gear-images').upload(filePath, file);
+                if (uploadError) throw uploadError;
+
+                const { data } = globalThis.sb.storage.from('gear-images').getPublicUrl(filePath);
+                
+                currentUploadedUrl = data.publicUrl; 
+                refreshModalImagePreview();
+            } catch (err) { 
+                alert("アップロードに失敗しました: " + err.message); 
+            } finally { 
+                showLoading(false); 
+            }
+        }
 
         document.addEventListener("DOMContentLoaded", () => {
             applyRoleRestrictions();
