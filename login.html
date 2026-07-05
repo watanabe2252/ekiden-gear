@@ -30,7 +30,7 @@
     </script>
     
     <style>
-        /* PWAスタンドアロン起動時の型崩れ防止 */
+        /* ホーム画面アプリ（PWA）起動時の上下セーフエリア型崩れを完全に防ぐ */
         body {
             padding-top: env(safe-area-inset-top, 20px);
             padding-bottom: env(safe-area-inset-bottom, 20px);
@@ -115,13 +115,12 @@
             errorBox.classList.add('hidden');
             loading.classList.remove('hidden');
 
-            // 💡 【超重要】入力されたIDがプレーン文字列の場合、後ろにダミードメインを結合してEmail化する
-            // もし実際にSupabase Authenticationに登録しているドメインが「@example.com」以外（例: @gmail.com等）の場合は、
-            // 下の `@example.com` の文字列をそのドメインに書き換えてください。
-            const email = inputId.includes('@') ? inputId : `${inputId}@example.com`;
+            // 💡 【完全復活ロジック】
+            // 入力された文字列に @ が含まれなければ、自動で「@ekiden.local」を結合して完全なEmailアドレスにします。
+            const email = inputId.includes('@') ? inputId : `${inputId}@ekiden.local`;
 
             try {
-                // 内部では公式のAuth機能を利用
+                // Supabase公式のAuth機能へEmailとして転送
                 const { data, error } = await sb.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -130,10 +129,10 @@
                 if (error) throw error;
 
                 if (data && data.session) {
-                    // index.htmlの認証ガード用セッションを設定
+                    // セッションをローカルストレージへ保存してガードをクリア
                     localStorage.setItem('ekiden_secure_session', data.session.access_token);
                     
-                    // 入力された文字列の判定からロールを割り振る
+                    // 入力されたIDの文字列（前方一致）でユーザー権限（Role）を自動切り替え
                     let userRole = "admin"; 
                     if (inputId.toLowerCase().includes('viewer')) {
                         userRole = "viewer";
@@ -142,7 +141,7 @@
                     }
                     localStorage.setItem('ekiden_user_role', userRole);
 
-                    // PWA最適化が施された index.html へ
+                    // PWA最適化済みの index.html へ安全にリダイレクト
                     window.location.href = "index.html";
                 } else {
                     throw new Error("セッションの確立に失敗しました。");
