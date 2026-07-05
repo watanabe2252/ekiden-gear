@@ -30,13 +30,10 @@
     </script>
     
     <style>
-        /* 💡 iPhone特有の上下セーフエリア（ノッチや底面バー）による押し潰れ・型崩れを防ぐための調整 */
+        /* 💡 ホーム画面起動時のノッチや底面インジケーターによる型崩れを防ぐ設定 */
         body {
-            /* 画面上部のステータスバーやノッチ分の余白を自動確保 */
             padding-top: env(safe-area-inset-top, 20px);
-            /* 画面下部のホームインジケーター分の余白を自動確保 */
             padding-bottom: env(safe-area-inset-bottom, 20px);
-            /* 高さの基準を動的ビューポート（dvh）にしてキーボード表示時の崩れも防止 */
             min-height: 100dvh;
         }
     </style>
@@ -85,7 +82,7 @@
 
     <div id="loadingOverlay" class="fixed inset-0 bg-bgDark/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-2 hidden">
         <div class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
-        <p class="text-[10px] text-slate-400 font-mono tracking-widest">AUTHENTICATING SECURE SESSION...</p>
+        <p class="text-[10px] text-slate-400 font-mono tracking-widest">VERIFYING SECURE SESSION...</p>
     </div>
 
     <script>
@@ -119,32 +116,36 @@
             loading.classList.remove('hidden');
 
             try {
-                const { data, error } = await sb.auth.signInWithPassword({
-                    email: inputId,
-                    password: password
-                });
+                // 💡 【修正点】メールアドレス認証を完全排除。以前の「テーブル内のプレーンID照合方式」に戻しました。
+                // アカウント情報が入っている「users」テーブルを直接検索します。
+                const { data: userRecords, error: dbError } = await sb
+                    .from('users') 
+                    .select('*')
+                    .eq('username', inputId)
+                    .eq('password', password);
 
-                if (error) throw error;
+                if (dbError) throw dbError;
 
-                if (data && data.session) {
-                    localStorage.setItem('ekiden_secure_session', data.session.access_token);
+                // IDとパスワードが完全一致するレコードが存在した場合
+                if (userRecords && userRecords.length > 0) {
+                    const targetUser = userRecords[0];
+
+                    // index.htmlのログインガードを解除するためのセッションを生成して保存
+                    localStorage.setItem('ekiden_secure_session', 'true_' + Date.now());
                     
-                    let userRole = "admin"; 
-                    if (inputId.toLowerCase().includes('viewer')) {
-                        userRole = "viewer";
-                    } else if (inputId.toLowerCase().includes('staff')) {
-                        userRole = "staff";
-                    }
-                    localStorage.setItem('ekiden_user_role', userRole);
+                    // データベースに登録されているロール（admin/staff/viewer）をそのまま引き継ぐ
+                    let role = targetUser.role || "viewer";
+                    localStorage.setItem('ekiden_user_role', role);
 
+                    // PWA最適化された index.html へ安全に遷移
                     window.location.href = "index.html";
                 } else {
-                    throw new Error("セッションの確立に失敗しました。");
+                    throw new Error("ユーザーIDまたはパスワードが正しくありません。");
                 }
 
             } catch (err) {
                 console.error("Login Error:", err);
-                errorText.innerText = "ユーザーIDまたはパスワードが正しくありません。";
+                errorText.innerText = err.message || "認証エラーが発生しました。";
                 errorBox.classList.remove('hidden');
             } finally {
                 loading.classList.add('hidden');
