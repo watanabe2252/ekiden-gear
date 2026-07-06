@@ -83,6 +83,7 @@
         </div>
     </div>
 
+    <!-- 画像をタップしたときの全画面拡大モーダル -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
         <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
         <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
@@ -320,7 +321,8 @@
             </div>
             
             <div class="flex-1 overflow-y-auto w-full pb-28">
-                <div id="gearCardList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pb-2"></div>
+                <!-- 💡 アイコン型横並びに適したレスポンシブな列数に最適化 -->
+                <div id="gearCardList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pb-2"></div>
             </div>
         </div>
 
@@ -1079,7 +1081,7 @@
             } catch (err) { alert("削除失敗: " + err.message); }
         }
 
-        // 💡 縦幅に合わせて綺麗に収める（max-h-full max-w-full object-contain）最適化版
+        // 💡 【左端アイコン配置改修】幅をとらない、すっきりした横並びのレイアウトへ変更
         function renderTable() {
             const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
@@ -1096,7 +1098,6 @@
             if (displayData.length === 0) { container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-6 text-xs">該当機材なし</div>`; return; }
             
             container.innerHTML = displayData.map(gear => {
-                // 💡 半角・全角どちらのスペースでも対応できるように文字切り出しロジックを強化
                 const modelKey = gear.name ? gear.name.split(/[  ]/)[0] : 'default';
                 
                 const displayImageUrl = (gear.image_url && gear.image_url.trim() !== "")
@@ -1104,26 +1105,31 @@
                     : `${SUPABASE_URL}/storage/v1/object/public/gear-image/models/${modelKey}.jpg`;
 
                 return `
-                    <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-col justify-between" onclick="openMaintModal('${gear.id}')">
-                        <div class="w-full h-32 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-borderStroke/40 relative p-2">
+                    <!-- flex-row で画像を左端、情報を右側に並べる構成 -->
+                    <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-row p-2 gap-3 items-center" onclick="openMaintModal('${gear.id}')">
+                        
+                        <!-- 💡 左端にアイコンとして正方形に配置（クリックで拡大可能） -->
+                        <div class="w-16 h-16 bg-slate-950 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-borderStroke/60 relative p-0.5">
                             <img src="${displayImageUrl}" alt="${gear.name}" loading="lazy" 
-                                 class="max-h-full max-w-full object-contain hover:scale-105 transition duration-200"
+                                 class="max-h-full max-w-full object-contain"
                                  onclick="event.stopPropagation(); openZoomModal('${displayImageUrl}')">
                         </div>
                         
-                        <div class="p-3 space-y-2 flex-1 flex flex-col justify-between">
-                            <div class="space-y-1">
-                                <span class="inline-block bg-emerald-500/10 text-accentGreen text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${gear.category || '未分類'}</span>
-                                <div class="flex flex-wrap items-baseline gap-x-1.5 w-full">
-                                    <span class="font-bold text-white text-xs keep-word">${gear.name}</span>
-                                    <span class="font-mono text-[10px] text-slate-400 font-bold bg-slate-900 px-1 py-0.5 rounded">${gear.num || '-'}</span>
-                                </div>
-                                <p class="text-[9px] text-slate-500 font-mono">S/N: ${gear.serial || '----'}</p>
+                        <!-- 右側のテキスト情報エリア -->
+                        <div class="flex-1 min-w-0 space-y-1">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category || '未分類'}</span>
+                                <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${gear.id}</span>
                             </div>
                             
-                            <div class="border-t border-borderStroke/60 pt-1.5 flex items-center justify-between gap-2" onclick="event.stopPropagation()">
-                                <span class="text-[9px] text-slate-500 font-bold shrink-0">📍配置</span>
-                                <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-200 px-1.5 py-1 rounded-lg text-xs font-semibold outline-none w-full max-w-[170px]">
+                            <div class="flex items-center gap-1.5 w-full">
+                                <span class="font-bold text-white text-xs truncate flex-1">${gear.name}</span>
+                                <span class="font-mono text-[9px] text-slate-400 font-bold bg-slate-900 px-1 py-0.5 rounded shrink-0">${gear.num || '-'}</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-1" onclick="event.stopPropagation()">
+                                <span class="text-[8px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
+                                <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-200 px-1 py-0.5 rounded-md text-[11px] font-semibold outline-none max-w-[120px]">
                                     ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
                                 </select>
                             </div>
@@ -1210,7 +1216,6 @@
         
         function closeMaintModal() { document.getElementById('maintModal')?.classList.add('hidden'); }
 
-        // 💡 モーダル内のプレビュー画像もはみ出さずに綺麗に収まる（object-contain）よう修正
         function refreshModalImagePreview() {
             const container = document.getElementById('imagePreviewContainer');
             const deleteBtn = document.getElementById('deleteImageBtn');
