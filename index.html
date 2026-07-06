@@ -697,7 +697,7 @@
                         if (item) {
                             if (item.gears) {
                                 gears.push({
-                                    id: item.gears.id, name: item.gears.name, category: item.gears.category, num: item.gears.num,
+                                    id: item.gears.id, name: item.gears.name, category: item.gears.category || "未分類", num: item.gears.num,
                                     mfr: item.gears.mfr, serial: item.gears.serial, asset: item.gears.asset, attachments: item.gears.attachments,
                                     image_url: item.gears.image_url, location: item.location || "no assign"
                                 });
@@ -1079,8 +1079,18 @@
             } catch (err) { alert("削除失敗: " + err.message); }
         }
 
-        // 💡 機材ナンバー（num）を自然順（No.1 -> No.2 -> No.10）で正しくソートするヘルパー関数
-        function naturalSortGears(a, b) {
+        // 💡 【改修】カテゴリー順でグループ化したあと、機材番号の自然順で並べる二段階ソート関数
+        function groupByCategoryAndSortNumber(a, b) {
+            const catA = a.category ? String(a.category) : '';
+            const catB = b.category ? String(b.category) : '';
+            
+            // 1. まずカテゴリー名で比較
+            const catComparison = catA.localeCompare(catB, 'ja');
+            if (catComparison !== 0) {
+                return catComparison; // カテゴリーが異なればその順序で決定
+            }
+            
+            // 2. 同じカテゴリー内であれば、機材番号（num）の自然順で比較
             const numA = a.num ? String(a.num) : '';
             const numB = b.num ? String(b.num) : '';
             return numA.localeCompare(numB, undefined, { numeric: true, sensitivity: 'base' });
@@ -1105,8 +1115,8 @@
                 return; 
             }
             
-            // 💡 描画前に機材番号順で自然順ソートを実行
-            displayData.sort(naturalSortGears);
+            // 💡 カテゴリーごとの自然順二段階ソートを適用
+            displayData.sort(groupByCategoryAndSortNumber);
             
             container.innerHTML = displayData.map(gear => {
                 const modelKey = gear.name ? gear.name.split(/[  ]/)[0] : 'default';
@@ -1126,7 +1136,7 @@
                         
                         <div class="flex-1 min-w-0 space-y-1">
                             <div class="flex items-center justify-between gap-1">
-                                <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category || '未分類'}</span>
+                                <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category}</span>
                                 <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${gear.id}</span>
                             </div>
                             
@@ -1186,13 +1196,13 @@
             const keyword = document.getElementById('maintSearchKeyword').value.toLowerCase();
             let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
             
-            // 💡 管理設定のテーブル側も機材番号の自然順でソート
-            displayData.sort(naturalSortGears);
+            // 💡 管理設定のテーブル側にも同様の二段階ソートを適用
+            displayData.sort(groupByCategoryAndSortNumber);
             
             tbody.innerHTML = displayData.map(gear => `
                 <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
                     <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
-                    <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold">${gear.category || '未分類'}</span></td>
+                    <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold">${gear.category}</span></td>
                     <td class="p-2 font-bold text-white truncate">${gear.name}</td>
                     <td class="p-2 text-right text-yellow-500 font-bold text-[10px]">></td>
                 </tr>
