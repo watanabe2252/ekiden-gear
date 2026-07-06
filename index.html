@@ -18,6 +18,9 @@
 
         const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
+        
+        // 💡 【新設】生成していただいたVAPID公開鍵をセット
+        const VAPID_PUBLIC_KEY = "BBu6HO1dufz6j0jC8u1PFD1rKpjoMHE4jLp0uN7I7YEJdHdCMHVuGe_YvG6cCX_0CiDT0pEqX1FyM4kJlJgDrPQ";
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -282,7 +285,6 @@
                 </p>
             </div>
             <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                <!-- 💡 この左隣に、JavaScriptによって「画像マスター」へのリンクボタンが動的に挿入されます -->
                 <button onclick="manualRefreshData()" id="btnManualRefresh" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-[10px] px-2.5 py-1 rounded-full transition active:scale-[0.95] flex items-center gap-1">
                     <i class="fas fa-sync-alt" id="iconRefresh"></i> 同期
                 </button>
@@ -910,7 +912,7 @@
             if (document.getElementById('bbsFormContainer')) document.getElementById('bbsFormContainer').style.display = isViewer ? 'none' : 'block';
             globalThis.isViewerMode = isViewer;
 
-            // 💡 【追加】ログインユーザーが admin の場合のみ、画面右上の同期ボタン横に「画像マスター」ボタンを出現させる
+            // 💡 ログインユーザーが admin の場合のみ、画面右上の同期ボタン横に「画像マスター」ボタンを出現させる
             if (isAdmin && !document.getElementById('btnGoImageManager')) {
                 const headerBar = document.getElementById('btnManualRefresh').parentElement;
                 if (headerBar) {
@@ -1298,11 +1300,65 @@
             }
         }
 
+        // 💡 【新設】Web Push通知の初期化およびトークン登録ロジック
+        async function initPushNotification() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                console.log('📢 プッシュ通知非対応のブラウザ/端末環境です。');
+                return;
+            }
+            try {
+                // sw.js（Service Worker）の登録確認
+                const register = await navigator.serviceWorker.register('sw.js');
+                console.log('Service Worker 正常稼働中');
+
+                // 通知許可状況の確認・要求
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    console.log('通知の許可が得られませんでした。');
+                    return;
+                }
+
+                // プッシュサーバーからの固有サブスクリプション（トークン情報）の取得
+                let subscription = await register.pushManager.getSubscription();
+                if (!subscription) {
+                    subscription = await register.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                    });
+                }
+
+                // トークンをSupabaseへ安全に保存（upsertで重複時上書き）
+                const roleName = localStorage.getItem('ekiden_user_role') || 'viewer';
+                await globalThis.sb.from('push_subscriptions').upsert([
+                    { user_id: roleName, subscription: subscription.toJSON() }
+                ]);
+                console.log('🔔 プッシュ通知の受信エンドポイント登録が完了しました。');
+
+            } catch (err) {
+                console.error('プッシュ通知サブスクリプション設定中にエラー:', err);
+            }
+        }
+
+        // 鍵形式変換用ヘルパー
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             applyRoleRestrictions();
             const cachedName = localStorage.getItem('ekiden_bbs_name');
             if(cachedName && document.getElementById('msgName')) document.getElementById('msgName').value = cachedName;
             loadEventMenu();
+
+            // 💡 アプリ起動から3秒後にプッシュ通知のバックグラウンド登録を自動キック
+            setTimeout(initPushNotification, 3000);
         });
     </script>
 </body>
