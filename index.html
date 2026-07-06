@@ -1079,7 +1079,13 @@
             } catch (err) { alert("削除失敗: " + err.message); }
         }
 
-        // 💡 機材ナンバーの装飾色を取り除き、通常の白文字（text-slate-400）で横並びにする構成に変更
+        // 💡 機材ナンバー（num）を自然順（No.1 -> No.2 -> No.10）で正しくソートするヘルパー関数
+        function naturalSortGears(a, b) {
+            const numA = a.num ? String(a.num) : '';
+            const numB = b.num ? String(b.num) : '';
+            return numA.localeCompare(numB, undefined, { numeric: true, sensitivity: 'base' });
+        }
+
         function renderTable() {
             const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
@@ -1093,7 +1099,14 @@
                 const matchesLocation = filterLoc === 'ALL' || gear.location === filterLoc;
                 return matchesKeyword && matchesLocation;
             });
-            if (displayData.length === 0) { container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-6 text-xs">該当機材なし</div>`; return; }
+            
+            if (displayData.length === 0) { 
+                container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-6 text-xs">該当機材なし</div>`; 
+                return; 
+            }
+            
+            // 💡 描画前に機材番号順で自然順ソートを実行
+            displayData.sort(naturalSortGears);
             
             container.innerHTML = displayData.map(gear => {
                 const modelKey = gear.name ? gear.name.split(/[  ]/)[0] : 'default';
@@ -1172,6 +1185,10 @@
             const tbody = document.getElementById('maintTableBody'); if(!tbody) return;
             const keyword = document.getElementById('maintSearchKeyword').value.toLowerCase();
             let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
+            
+            // 💡 管理設定のテーブル側も機材番号の自然順でソート
+            displayData.sort(naturalSortGears);
+            
             tbody.innerHTML = displayData.map(gear => `
                 <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
                     <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
