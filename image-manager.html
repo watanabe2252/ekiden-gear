@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>📷 Admin画像マスター管理システム</title>
+    
+    <script>
+        // 🔒 セキュリティガード: admin以外はアクセス拒否
+        const session = localStorage.getItem('ekiden_secure_session');
+        const role = localStorage.getItem('ekiden_user_role');
+        if (!session || role !== 'admin') {
+            alert("アクセス権限がありません。管理者のみアクセス可能です。");
+            window.location.href = "index.html";
+        }
+
+        const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bgDark: '#070a13',
+                        cardBg: '#111625',
+                        borderStroke: '#1e2538',
+                        accentGreen: '#10b981'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-bgDark text-slate-100 p-4 font-sans select-none min-h-screen flex flex-col max-w-2xl mx-auto space-y-4">
+
+    <div class="flex justify-between items-center border-b border-borderStroke pb-3 shrink-0">
+        <div>
+            <h1 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fas fa-camera text-yellow-500"></i> 画像マスター登録 (Admin専用)
+            </h1>
+            <p class="text-[10px] text-slate-400 font-mono mt-0.5">STORAGE PATH: /public/gear-image/models/</p>
+        </div>
+        <a href="index.html" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-[11px] px-3 py-1.5 rounded-xl transition flex items-center gap-1">
+            <i class="fas fa-arrow-left"></i> 戻る
+        </a>
+    </div>
+
+    <div class="bg-cardBg border border-borderStroke p-4 rounded-2xl space-y-4 shadow-xl">
+        <h3 class="text-xs font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fas fa-cloud-upload-alt"></i> 新規モデル画像の登録・上書き
+        </h3>
+        
+        <div class="space-y-3 text-xs">
+            <div>
+                <label class="block text-[10px] text-slate-400 mb-1 font-bold">画像の名前 (型番・モデル名) *</label>
+                <input type="text" id="modelNameInput" placeholder="例: HDC-3500  (スペースや拡張子は不要)" 
+                       class="w-full bg-bgDark border border-borderStroke rounded-xl p-2.5 text-white font-mono font-bold text-sm outline-none focus:border-yellow-500">
+                <p class="text-[9px] text-slate-500 mt-1">※ 入力した名前で「<span class="text-slate-300 font-mono" id="fileNamePreview">xxxx.jpg</span>」としてStorageに保存されます。既存画像がある場合は自動的に上書きされます。</p>
+            </div>
+
+            <input type="file" id="imageFileInput" accept="image/*" class="hidden" onchange="previewSelectedImage(event)">
+
+            <div onclick="document.getElementById('imageFileInput').click()" 
+                 class="border-2 border-dashed border-borderStroke hover:border-accentGreen/50 bg-bgDark rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition text-center shadow-inner min-h-[160px]">
+                <div id="uploadPlaceholder" class="space-y-2">
+                    <i class="fas fa-camera text-3xl text-slate-600"></i>
+                    <p class="text-slate-400 font-bold text-xs">タップしてカメラ起動 / 写真を選択</p>
+                    <p class="text-[9px] text-slate-600">JPEG, PNG形式に対応</p>
+                </div>
+                <div id="previewContainer" class="hidden w-full flex justify-center">
+                    <img id="imagePreview" src="" class="max-h-36 object-contain rounded-xl shadow-lg border border-borderStroke">
+                </div>
+            </div>
+        </div>
+
+        <button onclick="uploadModelImage()" id="btnUpload" disabled
+                class="w-full bg-slate-800 text-slate-500 font-black text-sm py-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2 cursor-not-allowed">
+            <i class="fas fa-check-circle"></i> Storageの models/ に保存
+        </button>
+    </div>
+
+    <div id="progressStatus" class="hidden bg-slate-900 border border-borderStroke p-3 rounded-xl text-center text-xs font-mono text-slate-300 animate-pulse">
+        <i class="fas fa-circle-notch animate-spin mr-1.5 text-accentGreen"></i> データを処理中...
+    </div>
+
+    <div class="bg-cardBg/50 border border-borderStroke p-4 rounded-2xl space-y-2 flex-1 flex flex-col overflow-hidden min-h-[200px]">
+        <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+            <i class="fas fa-images"></i> 現在登録した画像の動作確認テスト
+        </h4>
+        <div class="flex gap-3 bg-bgDark border border-borderStroke p-3 rounded-xl items-center text-xs flex-1 justify-center flex-col">
+            <input type="text" id="testNameInput" oninput="testPreviewImage()" placeholder="型番を入力して画像が出るかテスト..." 
+                   class="w-full max-w-xs bg-cardBg border border-borderStroke rounded-lg p-1.5 text-center text-white font-mono outline-none focus:border-accentGreen">
+            <div id="testImageContainer" class="w-24 h-24 bg-slate-950 rounded-xl border border-borderStroke flex items-center justify-center text-slate-700 overflow-hidden shrink-0 shadow-inner p-1">
+                <i class="fas fa-image text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let selectedFile = null;
+
+        // 入力値に応じてファイル名プレビューを動的に書き換え
+        document.getElementById('modelNameInput').addEventListener('input', (e) => {
+            const val = e.target.value.trim().split(/[  ]/)[0];
+            document.getElementById('fileNamePreview').innerText = val ? `${val}.jpg` : 'xxxx.jpg';
+            checkFormValidity();
+        });
+
+        // 選択された画像のプレビュー表示
+        function previewSelectedImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            selectedFile = file;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('previewContainer').classList.remove('hidden');
+                checkFormValidity();
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // 送信ボタンの活性・非活性制御
+        function checkFormValidity() {
+            const name = document.getElementById('modelNameInput').value.trim();
+            const btn = document.getElementById('btnUpload');
+            if (name && selectedFile) {
+                btn.disabled = false;
+                btn.className = "w-full bg-accentGreen text-bgDark font-black text-sm py-3 rounded-xl transition shadow-lg active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer";
+            } else {
+                btn.disabled = true;
+                btn.className = "w-full bg-slate-800 text-slate-500 font-black text-sm py-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2 cursor-not-allowed";
+            }
+        }
+
+        // 💡 確実な拡張子処理をして models/ 内にアップロード
+        async function uploadModelImage() {
+            const rawName = document.getElementById('modelNameInput').value.trim();
+            // スペース等が入った場合の不具合を防ぐため最初の単語を抽出
+            const cleanName = rawName.split(/[  ]/)[0]; 
+            
+            if (!cleanName || !selectedFile) return;
+
+            const progress = document.getElementById('progressStatus');
+            progress.classList.remove('hidden');
+
+            try {
+                // 理想のパス: models/型番.jpg
+                const filePath = `models/${cleanName}.jpg`;
+
+                // 既存の同名ファイルを上書き(upsert: true)で直接格納
+                const { error: uploadError } = await sb.storage
+                    .from('gear-image')
+                    .upload(filePath, selectedFile, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
+
+                if (uploadError) throw uploadError;
+
+                alert(`✅ 登録完了!\n「models/${cleanName}.jpg」として正常に格納されました。既存のカードにも即時反映されます。`);
+                
+                // リセット
+                document.getElementById('modelNameInput').value = "";
+                document.getElementById('imageFileInput').value = "";
+                document.getElementById('previewContainer').classList.add('hidden');
+                document.getElementById('uploadPlaceholder').classList.remove('hidden');
+                selectedFile = null;
+                checkFormValidity();
+
+            } catch (err) {
+                alert("❌ アップロード失敗: " + err.message);
+            } finally {
+                progress.classList.add('hidden');
+            }
+        }
+
+        // プレビューテスト用のリアルタイム表示関数
+        function testPreviewImage() {
+            const testName = document.getElementById('testNameInput').value.trim().split(/[  ]/)[0];
+            const container = document.getElementById('testImageContainer');
+            if (!testName) {
+                container.innerHTML = `<i class="fas fa-image text-xl"></i>`;
+                return;
+            }
+            const testUrl = `${SUPABASE_URL}/storage/v1/object/public/gear-image/models/${testName}.jpg`;
+            container.innerHTML = `<img src="${testUrl}" class="max-h-full max-w-full object-contain" onerror="this.parentElement.innerHTML='<span class="text-[9px] text-rose-500 font-bold">未登録</span>'">`;
+        }
+    </script>
+</body>
+</html>

@@ -83,6 +83,7 @@
         </div>
     </div>
 
+    <!-- 画像をタップしたときの全画面拡大モーダル -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
         <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
         <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
@@ -281,6 +282,7 @@
                 </p>
             </div>
             <div class="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                <!-- 💡 この左隣に、JavaScriptによって「画像マスター」へのリンクボタンが動的に挿入されます -->
                 <button onclick="manualRefreshData()" id="btnManualRefresh" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-[10px] px-2.5 py-1 rounded-full transition active:scale-[0.95] flex items-center gap-1">
                     <i class="fas fa-sync-alt" id="iconRefresh"></i> 同期
                 </button>
@@ -907,6 +909,18 @@
             }
             if (document.getElementById('bbsFormContainer')) document.getElementById('bbsFormContainer').style.display = isViewer ? 'none' : 'block';
             globalThis.isViewerMode = isViewer;
+
+            // 💡 【追加】ログインユーザーが admin の場合のみ、画面右上の同期ボタン横に「画像マスター」ボタンを出現させる
+            if (isAdmin && !document.getElementById('btnGoImageManager')) {
+                const headerBar = document.getElementById('btnManualRefresh').parentElement;
+                if (headerBar) {
+                    headerBar.insertAdjacentHTML('afterbegin', `
+                        <a id="btnGoImageManager" href="image-manager.html" class="bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-500 font-bold text-[10px] px-2.5 py-1 rounded-full transition active:scale-[0.95] flex items-center gap-1">
+                            <i class="fas fa-images"></i> 画像マスター
+                        </a>
+                    `);
+                }
+            }
         }
 
         function openLocationManagerModal() { 
@@ -1079,18 +1093,15 @@
             } catch (err) { alert("削除失敗: " + err.message); }
         }
 
-        // 💡 【改修】カテゴリー順でグループ化したあと、機材番号の自然順で並べる二段階ソート関数
         function groupByCategoryAndSortNumber(a, b) {
             const catA = a.category ? String(a.category) : '';
             const catB = b.category ? String(b.category) : '';
             
-            // 1. まずカテゴリー名で比較
             const catComparison = catA.localeCompare(catB, 'ja');
             if (catComparison !== 0) {
-                return catComparison; // カテゴリーが異なればその順序で決定
+                return catComparison;
             }
             
-            // 2. 同じカテゴリー内であれば、機材番号（num）の自然順で比較
             const numA = a.num ? String(a.num) : '';
             const numB = b.num ? String(b.num) : '';
             return numA.localeCompare(numB, undefined, { numeric: true, sensitivity: 'base' });
@@ -1115,7 +1126,6 @@
                 return; 
             }
             
-            // 💡 カテゴリーごとの自然順二段階ソートを適用
             displayData.sort(groupByCategoryAndSortNumber);
             
             container.innerHTML = displayData.map(gear => {
@@ -1128,12 +1138,14 @@
                 return `
                     <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-row p-2 gap-3 items-center" onclick="openMaintModal('${gear.id}')">
                         
+                        <!-- 左端スクエアイコン -->
                         <div class="w-16 h-16 bg-slate-950 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-borderStroke/60 relative p-0.5">
                             <img src="${displayImageUrl}" alt="${gear.name}" loading="lazy" 
                                  class="max-h-full max-w-full object-contain"
                                  onclick="event.stopPropagation(); openZoomModal('${displayImageUrl}')">
                         </div>
                         
+                        <!-- 右側テキスト・コントロールエリア -->
                         <div class="flex-1 min-w-0 space-y-1">
                             <div class="flex items-center justify-between gap-1">
                                 <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category}</span>
@@ -1145,6 +1157,7 @@
                                 <span class="font-mono text-[10px] text-slate-400 font-bold shrink-0">${gear.num || '-'}</span>
                             </div>
                             
+                            <!-- 配置先大型セレクトボックス -->
                             <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-1.5" onclick="event.stopPropagation()">
                                 <span class="text-[8px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
                                 <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1.5 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
@@ -1196,7 +1209,6 @@
             const keyword = document.getElementById('maintSearchKeyword').value.toLowerCase();
             let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
             
-            // 💡 管理設定のテーブル側にも同様の二段階ソートを適用
             displayData.sort(groupByCategoryAndSortNumber);
             
             tbody.innerHTML = displayData.map(gear => `
