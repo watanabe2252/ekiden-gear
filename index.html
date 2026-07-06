@@ -83,7 +83,6 @@
         </div>
     </div>
 
-    <!-- 画像をタップしたときの全画面拡大モーダル -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
         <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
         <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
@@ -321,7 +320,6 @@
             </div>
             
             <div class="flex-1 overflow-y-auto w-full pb-28">
-                <!-- 💡 アイコン型横並びに適したレスポンシブな列数に最適化 -->
                 <div id="gearCardList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pb-2"></div>
             </div>
         </div>
@@ -1081,7 +1079,7 @@
             } catch (err) { alert("削除失敗: " + err.message); }
         }
 
-        // 💡 【左端アイコン配置改修】幅をとらない、すっきりした横並びのレイアウトへ変更
+        // 💡 機材名の横にナンバーを配置、配置先セレクトボックスを押しやすく大型化
         function renderTable() {
             const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
@@ -1105,31 +1103,28 @@
                     : `${SUPABASE_URL}/storage/v1/object/public/gear-image/models/${modelKey}.jpg`;
 
                 return `
-                    <!-- flex-row で画像を左端、情報を右側に並べる構成 -->
                     <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-row p-2 gap-3 items-center" onclick="openMaintModal('${gear.id}')">
                         
-                        <!-- 💡 左端にアイコンとして正方形に配置（クリックで拡大可能） -->
                         <div class="w-16 h-16 bg-slate-950 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-borderStroke/60 relative p-0.5">
                             <img src="${displayImageUrl}" alt="${gear.name}" loading="lazy" 
                                  class="max-h-full max-w-full object-contain"
                                  onclick="event.stopPropagation(); openZoomModal('${displayImageUrl}')">
                         </div>
                         
-                        <!-- 右側のテキスト情報エリア -->
                         <div class="flex-1 min-w-0 space-y-1">
                             <div class="flex items-center justify-between gap-1">
                                 <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category || '未分類'}</span>
                                 <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${gear.id}</span>
                             </div>
                             
-                            <div class="flex items-center gap-1.5 w-full">
+                            <div class="flex items-center gap-1.5 w-full min-w-0">
                                 <span class="font-bold text-white text-xs truncate flex-1">${gear.name}</span>
-                                <span class="font-mono text-[9px] text-slate-400 font-bold bg-slate-900 px-1 py-0.5 rounded shrink-0">${gear.num || '-'}</span>
+                                <span class="font-mono text-[9px] text-accentGreen font-black bg-emerald-500/10 border border-accentGreen/20 px-1 py-0.5 rounded shrink-0">${gear.num || '-'}</span>
                             </div>
                             
-                            <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-1" onclick="event.stopPropagation()">
+                            <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-1.5" onclick="event.stopPropagation()">
                                 <span class="text-[8px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
-                                <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-200 px-1 py-0.5 rounded-md text-[11px] font-semibold outline-none max-w-[120px]">
+                                <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1.5 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
                                     ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
                                 </select>
                             </div>
