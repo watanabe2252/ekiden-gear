@@ -83,6 +83,11 @@
         </div>
     </div>
 
+    <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
+        <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
+        <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
+    </div>
+
     <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center hidden">
         <div class="max-w-md w-full bg-cardBg border border-borderStroke p-5 rounded-2xl shadow-2xl space-y-4">
             <div class="border-b border-borderStroke pb-3 flex justify-between items-center gap-2">
@@ -202,7 +207,7 @@
             <div class="p-4 space-y-3 text-xs overflow-y-auto flex-1">
                 <input type="hidden" id="editTargetId">
                 <div class="flex gap-3 bg-bgDark border border-borderStroke p-3 rounded-xl items-center">
-                    <div id="imagePreviewContainer" class="w-24 h-24 bg-slate-950 rounded-xl border border-borderStroke flex flex-col items-center justify-center text-slate-600 overflow-hidden shrink-0 shadow-inner"></div>
+                    <div id="imagePreviewContainer" class="w-24 h-24 bg-slate-950 rounded-xl border border-borderStroke flex flex-col items-center justify-center text-slate-600 overflow-hidden shrink-0 shadow-inner cursor-pointer hover:opacity-80"></div>
                     <div id="imageUploadControls" class="space-y-1.5 w-full text-left">
                         <input type="file" id="editImageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
                         <div class="flex gap-1.5 flex-wrap">
@@ -315,7 +320,7 @@
             </div>
             
             <div class="flex-1 overflow-y-auto w-full pb-28">
-                <div id="gearCardList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2"></div>
+                <div id="gearCardList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pb-2"></div>
             </div>
         </div>
 
@@ -1074,6 +1079,7 @@
             } catch (err) { alert("削除失敗: " + err.message); }
         }
 
+        // 💡 【大改修】使い回し・拡大機能・軽量遅延ロード対応版のカードリストレンダリング
         function renderTable() {
             const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
@@ -1088,23 +1094,59 @@
                 return matchesKeyword && matchesLocation;
             });
             if (displayData.length === 0) { container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-6 text-xs">該当機材なし</div>`; return; }
-            container.innerHTML = displayData.map(gear => `
-                <div class="bg-cardBg border border-borderStroke rounded-xl p-3 flex flex-col justify-between gap-2 shadow-md cursor-pointer hover:border-accentGreen/40" onclick="openMaintModal('${gear.id}')">
-                    <div class="space-y-1">
-                        <span class="inline-block bg-emerald-500/10 text-accentGreen text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${gear.category || '未分類'}</span>
-                        <div class="flex flex-wrap items-baseline gap-x-1.5 w-full">
-                            <span class="font-bold text-white text-xs keep-word">${gear.name}</span>
-                            <span class="font-mono text-[10px] text-slate-400 font-bold bg-slate-900 px-1 py-0.5 rounded">${gear.num || '-'}</span>
+            
+            container.innerHTML = displayData.map(gear => {
+                // 型番の抽出（スペースで区切られた最初の単語）
+                const modelKey = gear.name ? gear.name.split(' ')[0] : 'default';
+                
+                // 画像URLの決定ロジック（個別画像が空なら共通の型番画像をStorageから取得）
+                const displayImageUrl = (gear.image_url && gear.image_url.trim() !== "")
+                    ? gear.image_url
+                    : `${SUPABASE_URL}/storage/v1/object/public/gear-image/models/${modelKey}.jpg`;
+
+                return `
+                    <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-col justify-between" onclick="openMaintModal('${gear.id}')">
+                        <div class="w-full h-32 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-borderStroke/40 relative">
+                            <img src="${displayImageUrl}" alt="${gear.name}" loading="lazy" 
+                                 class="w-full h-full object-cover hover:scale-105 transition duration-200"
+                                 onclick="event.stopPropagation(); openZoomModal('${displayImageUrl}')">
+                        </div>
+                        
+                        <div class="p-3 space-y-2 flex-1 flex flex-col justify-between">
+                            <div class="space-y-1">
+                                <span class="inline-block bg-emerald-500/10 text-accentGreen text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">${gear.category || '未分類'}</span>
+                                <div class="flex flex-wrap items-baseline gap-x-1.5 w-full">
+                                    <span class="font-bold text-white text-xs keep-word">${gear.name}</span>
+                                    <span class="font-mono text-[10px] text-slate-400 font-bold bg-slate-900 px-1 py-0.5 rounded">${gear.num || '-'}</span>
+                                </div>
+                                <p class="text-[9px] text-slate-500 font-mono">S/N: ${gear.serial || '----'}</p>
+                            </div>
+                            
+                            <div class="border-t border-borderStroke/60 pt-1.5 flex items-center justify-between gap-2" onclick="event.stopPropagation()">
+                                <span class="text-[9px] text-slate-500 font-bold shrink-0">📍配置</span>
+                                <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-200 px-1.5 py-1 rounded-lg text-xs font-semibold outline-none w-full max-w-[170px]">
+                                    ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="border-t border-borderStroke/60 pt-1.5 flex items-center justify-between gap-2" onclick="event.stopPropagation()">
-                        <span class="text-[9px] text-slate-500 font-bold shrink-0">📍配置</span>
-                        <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-200 px-1.5 py-1 rounded-lg text-xs font-semibold outline-none w-full max-w-[170px]">
-                            ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
-                        </select>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        // 💡 【新規追加】画像を全画面で大きく表示する関数
+        function openZoomModal(imgUrl) {
+            const modal = document.getElementById('imageZoomModal');
+            const zoomedImg = document.getElementById('zoomedImage');
+            if (modal && zoomedImg) {
+                zoomedImg.src = imgUrl;
+                modal.classList.remove('hidden');
+            }
+        }
+
+        // 💡 【新規追加】拡大表示を閉じる関数
+        function closeZoomModal() {
+            document.getElementById('imageZoomModal')?.classList.add('hidden');
         }
 
         function renderBBS() {
@@ -1171,22 +1213,36 @@
         
         function closeMaintModal() { document.getElementById('maintModal')?.classList.add('hidden'); }
 
+        // 💡 【大改修】詳細詳細モーダル内のプレビューでも自動使い回し・タップ拡大を適用
         function refreshModalImagePreview() {
             const container = document.getElementById('imagePreviewContainer');
             const deleteBtn = document.getElementById('deleteImageBtn');
+            const editNameVal = document.getElementById('editName')?.value || 'default';
+            const modelKey = editNameVal.split(' ')[0];
             
-            if (currentUploadedUrl && currentUploadedUrl.trim() !== "") {
-                if(container) container.innerHTML = `<img src="${currentUploadedUrl}" class="w-full h-full object-cover rounded-xl shadow-md">`;
-                if(deleteBtn && !globalThis.isViewerMode) deleteBtn.classList.remove('hidden');
+            // モーダルでも画像URLを自動判定
+            let finalImgUrl = (currentUploadedUrl && currentUploadedUrl.trim() !== "")
+                ? currentUploadedUrl
+                : `${SUPABASE_URL}/storage/v1/object/public/gear-image/models/${modelKey}.jpg`;
+
+            // 画像がある（または使い回しがある）場合は表示し、タップ拡大のイベントを紐付け
+            if (finalImgUrl) {
+                if(container) {
+                    container.innerHTML = `<img src="${finalImgUrl}" class="w-full h-full object-cover rounded-xl shadow-md">`;
+                    container.onclick = () => openZoomModal(finalImgUrl);
+                }
+                if(deleteBtn && !globalThis.isViewerMode && currentUploadedUrl) deleteBtn.classList.remove('hidden');
             } else {
-                if(container) container.innerHTML = `<i class="fas fa-image text-2xl text-slate-700 mb-1"></i><span class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">NO IMAGE</span>`;
+                if(container) {
+                    container.innerHTML = `<i class="fas fa-image text-2xl text-slate-700 mb-1"></i><span class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">NO IMAGE</span>`;
+                    container.onclick = null;
+                }
                 if(deleteBtn) deleteBtn.classList.add('hidden');
             }
         }
         
         function deleteGearImage() { currentUploadedUrl = ""; refreshModalImagePreview(); }
 
-        // 💡 【バケット名修復箇所】'gear-images' から実際のバケット名 'gear-image' に完全同期
         async function handleImageUpload(event) {
             if (!globalThis.sb) return;
             const file = event.target.files[0]; if (!file) return;
