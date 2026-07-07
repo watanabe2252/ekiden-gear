@@ -8,18 +8,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="駅伝機材管理">
+    
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     
     <script>
         // ==========================================
-        // 🔄 認証チェック ＆ 無限リロード防止ガード
+        // 🔄 iOS PWA 特有の無限リロード・デッドロック防止ガード
         // ==========================================
         (function() {
             const sessionKey = 'ekiden_secure_session';
-            const hasSession = localStorage.getItem(sessionKey);
             
-            // URLパラメータに loop_reset がある場合はセッションをクリアして戻す
+            // URLパラメータに強制リセットがある場合はクリア
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('loop_reset')) {
                 localStorage.removeItem(sessionKey);
@@ -27,19 +27,26 @@
                 return;
             }
 
-            if (!hasSession) {
+            // セッションチェック
+            if (!localStorage.getItem(sessionKey)) {
                 const now = Date.now();
                 const lastRedirect = sessionStorage.getItem('last_auth_redirect') || 0;
                 
-                // 2秒以内に連続してリダイレクト（リロード）が発生している場合はループとみなす
-                if (now - lastRedirect < 2000) {
+                // 2.5秒以内に連続してここを通過した場合は無限ループとみなし、強制的に止めてloginへ
+                if (now - lastRedirect < 2500) {
                     sessionStorage.setItem('last_auth_redirect', now);
-                    // ループ防止フラグを付与して強制的にログイン画面へ引き戻す
-                    window.location.href = "login.html?error=loop_prevented";
+                    // 画面のパースとレンダリングの競合を防ぐため非同期で遷移
+                    setTimeout(() => {
+                        window.location.href = "login.html?error=loop_prevented";
+                    }, 100);
                 } else {
                     sessionStorage.setItem('last_auth_redirect', now);
-                    window.location.href = "login.html";
+                    setTimeout(() => {
+                        window.location.href = "login.html";
+                    }, 50);
                 }
+                // ループ中の不要なDOMレンダリングをストップさせる
+                window.stop();
             } else {
                 console.log("認証セッション確認完了");
             }
