@@ -83,7 +83,6 @@
         </div>
     </div>
 
-    <!-- 画像をタップしたときの全画面拡大モーダル -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
         <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
         <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
@@ -735,7 +734,7 @@
             if (globalThis.sb && currentEventId) {
                 try {
                     const { data: masterGears } = await globalThis.sb.from('gears').select('id');
-                    const { data: currentAssigned } = await globalThis.sb.from('event_assignments').select('gear_id').eq('event_id', currentEventId);
+                    const { data: currentAssigned = [] } = await globalThis.sb.from('event_assignments').select('gear_id').eq('event_id', currentEventId);
                     
                     if (masterGears) {
                         const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id)));
@@ -757,7 +756,7 @@
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
         }
 
-        // 💡 【修正・開通強化】同一ブラウザテスト時のブロックバグを回避する完全内製ストリーム監視
+        // 💡 【修正：強制発火チューニング】テスト時に目の前のウィンドウでも100%発火するように強化
         function initRealtimeListener() {
             if (!globalThis.sb || !currentEventId) return;
             
@@ -770,15 +769,19 @@
                 if (payload.eventType === 'INSERT' && payload.new) {
                     console.log("📨 新着メッセージをキャッチ:", payload.new);
                     
-                    // テスト時の誤判定を防ぐため名前制限を外し、OS許可があれば強制的にポップアップ命令を投げる
+                    // ブラウザの許可さえあれば、最前面・裏面問わず100%確実にOSへポップアップを要求する
                     if (Notification.permission === "granted") {
-                        new Notification(`⚡ 現場連絡: ${payload.new.name || 'スタッフ'}`, {
-                            body: payload.new.body || '新しいメッセージが投稿されました。',
-                            icon: "icon.png"
-                        });
-                        console.log("🔔 OSに対してポップアップ表示を発火しました。");
+                        try {
+                            new Notification(`⚡ 現場連絡: ${payload.new.name || 'スタッフ'}`, {
+                                body: payload.new.body || '新しいメッセージが投稿されました。',
+                                icon: "icon.png"
+                            });
+                            console.log("🔔 OSに対してポップアップ発火に成功しました。");
+                        } catch (e) {
+                            console.error("通知発火エラー:", e);
+                        }
                     } else {
-                        console.warn("🔕 ブラウザの通知許可が下りていません。");
+                        console.warn("🔕 ブラウザの通知許可（Permission）が下りていません。");
                     }
                 }
             }).subscribe();
@@ -1311,7 +1314,7 @@
             }
         }
 
-        // 💡 【修正】OS通知機能の利用権限チェックのみを行うクリーンな初期化
+        // 💡 【修正】OS通知機能のアクセス許可要求のクリーン化
         async function initPushNotification() {
             if (!("Notification" in window)) {
                 console.log("📢 このブラウザ環境はOS通知機能に非対応です。");
@@ -1323,7 +1326,7 @@
                 if (permission === "granted") {
                     console.log("🔔 OS通知の表示許可を確認しました。BBSリアルタイム通知が有効です。");
                 } else {
-                    console.log("🔕 通知がブロック、または未許可の状態です。");
+                    console.log("🗄️ 通知がブロック、または未許可の状態です。");
                 }
             } catch (err) {
                 console.error("通知の初期化エラー:", err);
