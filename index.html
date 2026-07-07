@@ -756,7 +756,7 @@
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
         }
 
-        // 💡 【修正：強制発火チューニング】テスト時に目の前のウィンドウでも100%発火するように強化
+        // 💡 ピュアWebsocket監視: 誰が送信したメッセージでも、OS許可さえあれば目の前の画面で100%通知を出す
         function initRealtimeListener() {
             if (!globalThis.sb || !currentEventId) return;
             
@@ -769,7 +769,6 @@
                 if (payload.eventType === 'INSERT' && payload.new) {
                     console.log("📨 新着メッセージをキャッチ:", payload.new);
                     
-                    // ブラウザの許可さえあれば、最前面・裏面問わず100%確実にOSへポップアップを要求する
                     if (Notification.permission === "granted") {
                         try {
                             new Notification(`⚡ 現場連絡: ${payload.new.name || 'スタッフ'}`, {
@@ -1314,7 +1313,7 @@
             }
         }
 
-        // 💡 【修正】OS通知機能のアクセス許可要求のクリーン化
+        // 💡 403エラーの原因を排除: OSに対する純粋な通知許可要求のみを実行
         async function initPushNotification() {
             if (!("Notification" in window)) {
                 console.log("📢 このブラウザ環境はOS通知機能に非対応です。");
@@ -1325,8 +1324,14 @@
                 const permission = await Notification.requestPermission();
                 if (permission === "granted") {
                     console.log("🔔 OS通知の表示許可を確認しました。BBSリアルタイム通知が有効です。");
+                    
+                    // 疎通テスト用ポップアップ（リロード時に1発自動で鳴ります）
+                    new Notification("⚡ 通知システム開通", {
+                        body: "Supabaseリアルタイム通知の受信準備が完了しました！",
+                        icon: "icon.png"
+                    });
                 } else {
-                    console.log("🗄️ 通知がブロック、または未許可の状態です。");
+                    console.log("🔕 通知がブロック、または未許可の状態です。");
                 }
             } catch (err) {
                 console.error("通知の初期化エラー:", err);
