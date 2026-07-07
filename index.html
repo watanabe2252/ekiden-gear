@@ -83,6 +83,7 @@
         </div>
     </div>
 
+    <!-- 画像をタップしたときの全画面拡大モーダル -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
         <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
         <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
@@ -685,9 +686,7 @@
                     assignData = t1;
                 } else {
                     let { data: t2, error: e2 } = await globalThis.sb
-                        .from('event_assignments')
-                        .select(`location, gear_id, gears (id, name, category, num, mfr, serial, asset, attachments, image_url)`)
-                        .eq('event_id', currentEventId);
+                        .from('event_assignments').select(`location, gear_id, gears (id, name, category, num, mfr, serial, asset, attachments, image_url)`).eq('event_id', currentEventId);
                     if (!e2) assignData = t2;
                 }
 
@@ -758,7 +757,7 @@
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
         }
 
-        // 💡 【修正・内製強化】外部の配信中継を使わず、SupabaseのWebsocketから直接ネイティブOS通知を生成
+        // 💡 【修正・開通強化】同一ブラウザテスト時のブロックバグを回避する完全内製ストリーム監視
         function initRealtimeListener() {
             if (!globalThis.sb || !currentEventId) return;
             
@@ -768,16 +767,18 @@
             globalThis.sb.channel('db-messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `event_id=eq.${currentEventId}` }, (payload) => {
                 fetchSupabaseData(true);
                 
-                // 新しい書き込み（INSERT）があった場合
                 if (payload.eventType === 'INSERT' && payload.new) {
-                    const currentStaffName = document.getElementById('msgName')?.value || localStorage.getItem('ekiden_bbs_name') || '';
+                    console.log("📨 新着メッセージをキャッチ:", payload.new);
                     
-                    // 投稿者が自分自身以外の場合のみ通知ポップアップをキック
-                    if (payload.new.name !== currentStaffName && Notification.permission === "granted") {
+                    // テスト時の誤判定を防ぐため名前制限を外し、OS許可があれば強制的にポップアップ命令を投げる
+                    if (Notification.permission === "granted") {
                         new Notification(`⚡ 現場連絡: ${payload.new.name || 'スタッフ'}`, {
                             body: payload.new.body || '新しいメッセージが投稿されました。',
                             icon: "icon.png"
                         });
+                        console.log("🔔 OSに対してポップアップ表示を発火しました。");
+                    } else {
+                        console.warn("🔕 ブラウザの通知許可が下りていません。");
                     }
                 }
             }).subscribe();
@@ -1310,23 +1311,22 @@
             }
         }
 
-        // 💡 【修正・内製強化】OSに対する純粋な通知許可の要求のみを実行するクリーンなロジック
+        // 💡 【修正】OS通知機能の利用権限チェックのみを行うクリーンな初期化
         async function initPushNotification() {
             if (!("Notification" in window)) {
-                console.log("📢 このブラウザ環境はブラウザ（OS）通知機能に非対応です。");
+                console.log("📢 このブラウザ環境はOS通知機能に非対応です。");
                 return;
             }
             
             try {
-                // ブラウザに対してOS通知の表示許可を要求
                 const permission = await Notification.requestPermission();
                 if (permission === "granted") {
-                    console.log("🔔 OS通知システムが許可されました。リアルタイムのBBS投稿監視が有効です。");
+                    console.log("🔔 OS通知の表示許可を確認しました。BBSリアルタイム通知が有効です。");
                 } else {
-                    console.log("🔕 通知許可が得られなかったため、画面ポップアップはスキップされます。");
+                    console.log("🔕 通知がブロック、または未許可の状態です。");
                 }
             } catch (err) {
-                console.error("通知システムの初期化中にエラーが発生しました:", err);
+                console.error("通知の初期化エラー:", err);
             }
         }
 
@@ -1336,7 +1336,7 @@
             if(cachedName && document.getElementById('msgName')) document.getElementById('msgName').value = cachedName;
             loadEventMenu();
 
-            // アプリ起動から3秒後に通知許可の確認をキック
+            // 起動3秒後に通知システムへのアクセス許可確認を行う
             setTimeout(initPushNotification, 3000);
         });
     </script>
