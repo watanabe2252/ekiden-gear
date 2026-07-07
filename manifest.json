@@ -2,6 +2,8 @@
   "name": "駅伝機材管理 リアルタイムクラウド",
   "short_name": "駅伝機材管理",
   "start_url": "/index.html",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#070a13",
   "theme_color": "#10b981",
