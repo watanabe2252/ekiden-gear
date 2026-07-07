@@ -12,9 +12,38 @@
     <link rel="manifest" href="manifest.json">
     
     <script>
-        if (!localStorage.getItem('ekiden_secure_session')) {
-            window.location.href = "login.html";
-        }
+        // ==========================================
+        // 🔄 認証チェック ＆ 無限リロード防止ガード
+        // ==========================================
+        (function() {
+            const sessionKey = 'ekiden_secure_session';
+            const hasSession = localStorage.getItem(sessionKey);
+            
+            // URLパラメータに loop_reset がある場合はセッションをクリアして戻す
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('loop_reset')) {
+                localStorage.removeItem(sessionKey);
+                window.location.href = "login.html";
+                return;
+            }
+
+            if (!hasSession) {
+                const now = Date.now();
+                const lastRedirect = sessionStorage.getItem('last_auth_redirect') || 0;
+                
+                // 2秒以内に連続してリダイレクト（リロード）が発生している場合はループとみなす
+                if (now - lastRedirect < 2000) {
+                    sessionStorage.setItem('last_auth_redirect', now);
+                    // ループ防止フラグを付与して強制的にログイン画面へ引き戻す
+                    window.location.href = "login.html?error=loop_prevented";
+                } else {
+                    sessionStorage.setItem('last_auth_redirect', now);
+                    window.location.href = "login.html";
+                }
+            } else {
+                console.log("認証セッション確認完了");
+            }
+        })();
 
         const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
@@ -440,7 +469,7 @@
         let currentEventId = null; 
         let currentEventName = "";
         let userRole = "viewer";   
-        let gears = [];             
+        let gears = [];              
         let bbsMessages = [];
         let currentUploadedUrl = "";
         let dragTargetElement = null;
