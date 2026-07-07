@@ -359,6 +359,23 @@
         </div>
 
         <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 hidden">
+            <!-- 🔔 通知設定トグルスイッチパネル（新設） -->
+            <div class="bg-slate-900 border border-borderStroke px-3 py-2 rounded-xl flex items-center justify-between shrink-0 gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400 text-xs shrink-0">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-[11px] font-black text-white leading-tight">画面ロック時のプッシュ通知</h4>
+                        <p class="text-[8px] text-slate-500 font-mono tracking-wider">PUSH NOTIFICATION SERVICE (PWA)</p>
+                    </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                    <input type="checkbox" id="togglePushNotification" onchange="handlePushToggleChange(this)" class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-800 border border-borderStroke rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 peer-checked:after:bg-white"></div>
+                </label>
+            </div>
+
             <div id="bbsFormContainer" class="bg-cardBg border border-borderStroke p-3 rounded-xl shrink-0 space-y-2 transition-colors duration-200">
                 <div class="flex justify-between items-center">
                     <h3 id="bbsFormTitle" class="text-[11px] font-bold text-accentGreen uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap">
@@ -479,6 +496,9 @@
         let currentUploadedUrl = "";
         let dragTargetElement = null;
 
+        // 🔑 【重要】Supabaseの「Project Settings」>「API」>「VAPID Keys」にある公開鍵をここに設定してください
+        const VAPID_PUBLIC_KEY = "YOUR_SUPABASE_VAPID_PUBLIC_KEY";
+
         function logStatus(msg) {
             console.log(msg);
             const el = document.getElementById('errorDetails');
@@ -537,6 +557,9 @@
             if(navs[tab]) {
                 navs[tab].classList.remove('text-slate-400');
                 navs[tab].classList.add('text-accentGreen');
+            }
+            if (tab === 'bbs') {
+                syncPushToggleState();
             }
         }
 
@@ -1315,7 +1338,131 @@
             }
         }
 
+        // ==========================================
+        // 🔔 📡 プッシュ通知（Web Push / PWA）制御ロジック
+        // ==========================================
+        async function syncPushToggleState() {
+            const toggle = document.getElementById('togglePushNotification');
+            if (!toggle) return;
+
+            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                toggle.disabled = true;
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    toggle.checked = !!subscription;
+                } catch (e) {
+                    console.error("サブスクリプションの取得に失敗:", e);
+                    toggle.checked = false;
+                }
+            } else {
+                toggle.checked = false;
+            }
+        }
+
+        async function handlePushToggleChange(element) {
+            if (!globalThis.sb) return;
+            
+            if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                alert("お使いの環境（ブラウザまたは端末）はプッシュ通知に対応していません。iOSの場合は『ホーム画面に追加』してPWAとして起動してください。");
+                element.checked = false;
+                return;
+            }
+
+            if (element.checked) {
+                // 🔔 ONにする処理
+                showLoading(true, "通知サービスを登録中...");
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    alert("通知の許可が拒否されました。iPhoneの『設定』>『通知』>『駅伝機材管理』から通知を許可してください。");
+                    element.checked = false;
+                    showLoading(false);
+                    return;
+                }
+
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    
+                    // 既存のサブスクリプションがあれば一度解除してクリーンアップ
+                    const oldSub = await registration.pushManager.getSubscription();
+                    if (oldSub) await oldSub.unsubscribe();
+
+                    if (VAPID_PUBLIC_KEY === "YOUR_SUPABASE_VAPID_PUBLIC_KEY") {
+                        throw new Error("VAPID_PUBLIC_KEY が初期値のままです。コード内の値をSupabaseの公開鍵に書き換えてください。");
+                    }
+
+                    // 新しいエンドポイントを発行
+                    const subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                    });
+
+                    // 宛先トークンを Supabase `push_subscriptions` へ書き込み
+                    const { error } = await globalThis.sb.from('push_subscriptions').insert([{
+                        subscription: subscription.toJSON()
+                    }]);
+
+                    if (error) throw error;
+                    
+                    alert("🚀 この端末へのプッシュ通知が有効になりました！画面を閉じても新規メッセージが届きます。");
+                } catch (err) {
+                    console.error("プッシュ登録エラー:", err);
+                    alert("通知の登録に失敗しました: " + err.message);
+                    element.checked = false;
+                } finally {
+                    showLoading(false);
+                }
+            } else {
+                // 📴 OFFにする処理
+                if (!confirm("この端末へのプッシュ通知を解除しますか？")) {
+                    element.checked = true;
+                    return;
+                }
+                showLoading(true, "通知サービスを解除中...");
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    if (subscription) {
+                        const endpoint = subscription.endpoint;
+                        // 1. ブラウザ（端末）側の購読を解除
+                        await subscription.unsubscribe();
+                        // 2. データベース（Supabase）側から対象エンドポイントのレコードを削除
+                        // ※ JSONオブジェクト内の特定項目をキーにするため、一度テキスト一致か全体比較等で処理
+                        await globalThis.sb.from('push_subscriptions').delete().textSearch('subscription', endpoint);
+                    }
+                    alert("通知を完全に解除しました。");
+                } catch (e) {
+                    console.error("解除エラー:", e);
+                } finally {
+                    showLoading(false);
+                }
+            }
+        }
+
+        // VAPIDキー（Base64URL）をブラウザ標準の規格（Uint8Array）へ変換する補助関数
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
+            // 🌐 Service Workerのバックグラウンド自動登録
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+                    .then(reg => console.log('🔔 ServiceWorker 登録成功 scope:', reg.scope))
+                    .catch(err => console.error('❌ ServiceWorker 登録失敗:', err));
+            }
+
             applyRoleRestrictions();
             const cachedName = localStorage.getItem('ekiden_bbs_name');
             if(cachedName && document.getElementById('msgName')) document.getElementById('msgName').value = cachedName;
