@@ -6,20 +6,21 @@
     <title>⚡ 駅伝・マラソン機材管理 ＆ リアルタイムクラウド</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="駅伝機材管理">
     
     <meta name="mobile-web-app-capable" content="yes">
     
     <link rel="manifest" href="manifest.json">
     <script>
-        // iPhoneで通知を有効化するためにService Workerをバックグラウンドに登録
+        // 🛠️ Service Worker 登録ロジック
+        let swRegObject = null; // タップイベントに引き渡すためにグローバル保持
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
                 .then(reg => {
                     console.log('🔔 Service Worker 登録成功:', reg);
-                    // 登録成功後にプッシュ通知のセットアップを開始
-                    initPushNotification(reg);
+                    swRegObject = reg;
+                    // ⚠️ 自動実行(initPushNotification)はiOSセキュリティブロックを招くためここでは呼ばない
                 })
                 .catch(err => console.error('❌ Service Worker 登録失敗:', err));
         }
@@ -199,7 +200,7 @@
             </div>
             <div class="p-4 overflow-y-auto flex-1 space-y-2 select-none" id="locationManagerList"></div>
             <div class="bg-slate-900/90 px-4 py-3 border-t border-borderStroke flex justify-between items-center shrink-0 gap-2">
-                <p id="lblOrderSavedStatus" class="text-[10px] font-bold text-slate-500 font-mono"></p>
+                <p id="lblOrderSavedStatus" class="text-[10px] font-bold text-yellow-500 font-mono"></p>
                 <div class="flex gap-1.5 ml-auto">
                     <button onclick="closeLocationManagerModal()" class="bg-slate-800 text-gray-300 px-4 py-1.5 rounded-lg font-bold text-xs">閉じる</button>
                     <button onclick="saveLocationOrder()" class="bg-accentGreen text-bgDark font-black px-4 py-1.5 rounded-lg text-xs shadow-lg active:scale-95 transition">
@@ -580,8 +581,8 @@
                 }
                 document.getElementById('pageEventSelect')?.classList.remove('hidden');
                 showLoading(false);
-            } catch (err) {
-                logStatus("❌ 大会ロード失敗: " + err.message);
+            } catch (err) { 
+                logStatus("❌ 大会ロード失敗: " + err.message); 
                 document.getElementById('errorDiagnostic')?.classList.remove('hidden');
             }
         }
@@ -649,6 +650,7 @@
             } catch (err) { alert("作成失敗: " + err.message); }
         }
 
+        // 📲 大会ファイル選択（＝ログイン完了の瞬間）に通知認証を安全に挟み込む
         function selectEventFile(eventId, eventName) {
             currentEventId = eventId;
             currentEventName = eventName;
@@ -660,6 +662,12 @@
             switchTab('list');
             fetchSupabaseData();
             initRealtimeListener();
+
+            // ⚡ iOS PWA対策：ユーザーが大会をタップした「この瞬間」なら通知権限ポップアップが確実に発動します
+            if (swRegObject) {
+                console.log("📲 ユーザーインタラクションを検知: プッシュ初期化をキックします");
+                initPushNotification(swRegObject);
+            }
         }
 
         function returnToEventMenu() { currentEventId = null; document.getElementById('mainAppContent')?.classList.add('hidden'); document.getElementById('bottomNavBar')?.classList.add('hidden'); loadEventMenu(); }
@@ -692,7 +700,7 @@
                     .from('event_assignments')
                     .select(`location, gear_id, gears:gear_id (id, name, category, num, mfr, serial, asset, attachments, image_url)`)
                     .eq('event_id', currentEventId);
-                
+                    
                 if (!e1 && t1 && t1.length > 0 && t1[0].gears !== null) {
                     assignData = t1;
                 } else {
@@ -1306,7 +1314,7 @@
             }
         }
 
-        // 💡 取得したWebプッシュ用デバイストークンをSupabaseへ安全に自動記録するコアロジック
+        // 💡 取得したWebプッシュ用デバイストークをSupabaseへ安全に自動記録するコアロジック
         async function initPushNotification(swRegistration) {
             if (!("Notification" in window) || !("serviceWorker" in navigator)) {
                 console.log("📢 このブラウザ環境はOSプッシュ通知に非対応です。");
