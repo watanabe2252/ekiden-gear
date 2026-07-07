@@ -6,10 +6,9 @@
     <title>⚡ 駅伝・マラソン機材管理 ＆ リアルタイムクラウド</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="駅伝機材管理">
-    
+    <meta name="apple-mobile-web-app-status-bar-style" content="default"> <meta name="apple-mobile-web-app-title" content="駅伝機材管理">
     <meta name="mobile-web-app-capable" content="yes">
+    
     <link rel="manifest" href="manifest.json">
     
     <script>
@@ -23,7 +22,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('loop_reset')) {
                 localStorage.removeItem(sessionKey);
-                window.location.href = "login.html";
+                window.location.replace("login.html");
                 return;
             }
 
@@ -35,15 +34,14 @@
                 // 2.5秒以内に連続してここを通過した場合は無限ループとみなし、強制的に止めてloginへ
                 if (now - lastRedirect < 2500) {
                     sessionStorage.setItem('last_auth_redirect', now);
-                    // 画面のパースとレンダリングの競合を防ぐため非同期で遷移
                     setTimeout(() => {
-                        window.location.href = "login.html?error=loop_prevented";
-                    }, 100);
+                        window.location.replace("login.html?error=loop_prevented");
+                    }, 50);
                 } else {
                     sessionStorage.setItem('last_auth_redirect', now);
                     setTimeout(() => {
-                        window.location.href = "login.html";
-                    }, 50);
+                        window.location.replace("login.html");
+                    }, 10);
                 }
                 // ループ中の不要なDOMレンダリングをストップさせる
                 window.stop();
@@ -509,7 +507,7 @@
             if(confirm("システムから安全にログアウトしますか？")) {
                 localStorage.removeItem('ekiden_secure_session');
                 localStorage.removeItem('ekiden_user_role');
-                window.location.href = "login.html";
+                window.location.replace("login.html");
             }
         }
 
@@ -1151,7 +1149,7 @@
             displayData.sort(groupByCategoryAndSortNumber);
             
             container.innerHTML = displayData.map(gear => {
-                const modelKey = gear.name ? gear.name.split(/[  ]/)[0] : 'default';
+                const modelKey = gear.name ? gear.name.split(/[ ]/)[0] : 'default';
                 
                 const displayImageUrl = (gear.image_url && gear.image_url.trim() !== "")
                     ? gear.image_url
@@ -1273,7 +1271,7 @@
             const container = document.getElementById('imagePreviewContainer');
             const deleteBtn = document.getElementById('deleteImageBtn');
             const editNameVal = document.getElementById('editName')?.value || 'default';
-            const modelKey = editNameVal.split(/[  ]/)[0];
+            const modelKey = editNameVal.split(/[ ]/)[0];
             
             let finalImgUrl = (currentUploadedUrl && currentUploadedUrl.trim() !== "")
                 ? currentUploadedUrl
