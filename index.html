@@ -18,9 +18,6 @@
 
         const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
-        
-        // 💡 【新設】生成していただいたVAPID公開鍵をセット
-        const VAPID_PUBLIC_KEY = "BBu6HO1dufz6j0jC8u1PFD1rKpjoMHE4jLp0uN7I7YEJdHdCMHVuGe_YvG6cCX_0CiDT0pEqX1FyM4kJlJgDrPQ";
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -86,7 +83,6 @@
         </div>
     </div>
 
-    <!-- 画像をタップしたときの全画面拡大モーダル -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
         <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
         <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
@@ -762,11 +758,29 @@
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
         }
 
+        // 💡 【修正・内製強化】外部の配信中継を使わず、SupabaseのWebsocketから直接ネイティブOS通知を生成
         function initRealtimeListener() {
             if (!globalThis.sb || !currentEventId) return;
+            
             globalThis.sb.channel('db-assignments').on('postgres_changes', { event: '*', schema: 'public', table: 'event_assignments', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
-            globalThis.sb.channel('db-messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
             globalThis.sb.channel('db-locations').on('postgres_changes', { event: '*', schema: 'public', table: 'locations', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
+            
+            globalThis.sb.channel('db-messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `event_id=eq.${currentEventId}` }, (payload) => {
+                fetchSupabaseData(true);
+                
+                // 新しい書き込み（INSERT）があった場合
+                if (payload.eventType === 'INSERT' && payload.new) {
+                    const currentStaffName = document.getElementById('msgName')?.value || localStorage.getItem('ekiden_bbs_name') || '';
+                    
+                    // 投稿者が自分自身以外の場合のみ通知ポップアップをキック
+                    if (payload.new.name !== currentStaffName && Notification.permission === "granted") {
+                        new Notification(`⚡ 現場連絡: ${payload.new.name || 'スタッフ'}`, {
+                            body: payload.new.body || '新しいメッセージが投稿されました。',
+                            icon: "icon.png"
+                        });
+                    }
+                }
+            }).subscribe();
         }
 
         async function changeGearLocation(gearId, newLoc) {
@@ -912,7 +926,6 @@
             if (document.getElementById('bbsFormContainer')) document.getElementById('bbsFormContainer').style.display = isViewer ? 'none' : 'block';
             globalThis.isViewerMode = isViewer;
 
-            // 💡 ログインユーザーが admin の場合のみ、画面右上の同期ボタン横に「画像マスター」ボタンを出現させる
             if (isAdmin && !document.getElementById('btnGoImageManager')) {
                 const headerBar = document.getElementById('btnManualRefresh').parentElement;
                 if (headerBar) {
@@ -1140,14 +1153,12 @@
                 return `
                     <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-row p-2 gap-3 items-center" onclick="openMaintModal('${gear.id}')">
                         
-                        <!-- 左端スクエアイコン -->
                         <div class="w-16 h-16 bg-slate-950 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-borderStroke/60 relative p-0.5">
                             <img src="${displayImageUrl}" alt="${gear.name}" loading="lazy" 
                                  class="max-h-full max-w-full object-contain"
                                  onclick="event.stopPropagation(); openZoomModal('${displayImageUrl}')">
                         </div>
                         
-                        <!-- 右側テキスト・コントロールエリア -->
                         <div class="flex-1 min-w-0 space-y-1">
                             <div class="flex items-center justify-between gap-1">
                                 <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category}</span>
@@ -1159,7 +1170,6 @@
                                 <span class="font-mono text-[10px] text-slate-400 font-bold shrink-0">${gear.num || '-'}</span>
                             </div>
                             
-                            <!-- 配置先大型セレクトボックス -->
                             <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-1.5" onclick="event.stopPropagation()">
                                 <span class="text-[8px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
                                 <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1.5 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
@@ -1300,55 +1310,24 @@
             }
         }
 
-        // 💡 【新設】Web Push通知の初期化およびトークン登録ロジック
+        // 💡 【修正・内製強化】OSに対する純粋な通知許可の要求のみを実行するクリーンなロジック
         async function initPushNotification() {
-            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                console.log('📢 プッシュ通知非対応のブラウザ/端末環境です。');
+            if (!("Notification" in window)) {
+                console.log("📢 このブラウザ環境はブラウザ（OS）通知機能に非対応です。");
                 return;
             }
+            
             try {
-                // sw.js（Service Worker）の登録確認
-                const register = await navigator.serviceWorker.register('sw.js');
-                console.log('Service Worker 正常稼働中');
-
-                // 通知許可状況の確認・要求
+                // ブラウザに対してOS通知の表示許可を要求
                 const permission = await Notification.requestPermission();
-                if (permission !== 'granted') {
-                    console.log('通知の許可が得られませんでした。');
-                    return;
+                if (permission === "granted") {
+                    console.log("🔔 OS通知システムが許可されました。リアルタイムのBBS投稿監視が有効です。");
+                } else {
+                    console.log("🔕 通知許可が得られなかったため、画面ポップアップはスキップされます。");
                 }
-
-                // プッシュサーバーからの固有サブスクリプション（トークン情報）の取得
-                let subscription = await register.pushManager.getSubscription();
-                if (!subscription) {
-                    subscription = await register.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-                    });
-                }
-
-                // トークンをSupabaseへ安全に保存（upsertで重複時上書き）
-                const roleName = localStorage.getItem('ekiden_user_role') || 'viewer';
-                await globalThis.sb.from('push_subscriptions').upsert([
-                    { user_id: roleName, subscription: subscription.toJSON() }
-                ]);
-                console.log('🔔 プッシュ通知の受信エンドポイント登録が完了しました。');
-
             } catch (err) {
-                console.error('プッシュ通知サブスクリプション設定中にエラー:', err);
+                console.error("通知システムの初期化中にエラーが発生しました:", err);
             }
-        }
-
-        // 鍵形式変換用ヘルパー
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-            }
-            return outputArray;
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -1357,7 +1336,7 @@
             if(cachedName && document.getElementById('msgName')) document.getElementById('msgName').value = cachedName;
             loadEventMenu();
 
-            // 💡 アプリ起動から3秒後にプッシュ通知のバックグラウンド登録を自動キック
+            // アプリ起動から3秒後に通知許可の確認をキック
             setTimeout(initPushNotification, 3000);
         });
     </script>
