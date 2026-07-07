@@ -11,7 +11,16 @@
     
     <meta name="mobile-web-app-capable" content="yes">
     
+    <!-- 📄 PWA用マニフェストファイルの読み込み -->
+    <link rel="manifest" href="manifest.json">
     <script>
+        // iPhoneで通知を有効化するためにService Workerをバックグラウンドに登録
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('🔔 Service Worker 登録成功:', reg))
+                .catch(err => console.error('❌ Service Worker 登録失敗:', err));
+        }
+
         if (!localStorage.getItem('ekiden_secure_session')) {
             window.location.href = "login.html";
         }
@@ -72,7 +81,7 @@
 <body class="bg-bgDark text-slate-100 overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
 
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
-        <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
+        <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><div class="fas fa-circle-notch"></div></div>
         <p id="loadingText" class="text-[10px] text-slate-400 font-mono tracking-widest">CONNECTING TO SUPABASE...</p>
         <div id="errorDiagnostic" class="hidden max-w-md w-full bg-slate-900 border border-borderStroke p-4 rounded-xl text-left space-y-2 mt-1">
             <p class="text-accentGreen font-black text-xs flex items-center gap-1.5"><i class="fas fa-terminal"></i> リアルタイム同期ログ</p>
@@ -83,6 +92,7 @@
         </div>
     </div>
 
+    <!-- 画像をタップしたときの全画面拡大モーダル -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
         <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
         <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
@@ -756,7 +766,7 @@
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
         }
 
-        // 💡 ピュアWebsocket監視: 誰が送信したメッセージでも、OS許可さえあれば目の前の画面で100%通知を出す
+        // 💡 【iPhone完全対応】Websocket電波をキャッチしたら、Service Worker(sw.js)に通知発火シグナルを送信する
         function initRealtimeListener() {
             if (!globalThis.sb || !currentEventId) return;
             
@@ -769,18 +779,24 @@
                 if (payload.eventType === 'INSERT' && payload.new) {
                     console.log("📨 新着メッセージをキャッチ:", payload.new);
                     
-                    if (Notification.permission === "granted") {
-                        try {
-                            new Notification(`⚡ 現場連絡: ${payload.new.name || 'スタッフ'}`, {
-                                body: payload.new.body || '新しいメッセージが投稿されました。',
-                                icon: "icon.png"
-                            });
-                            console.log("🔔 OSに対してポップアップ発火に成功しました。");
-                        } catch (e) {
-                            console.error("通知発火エラー:", e);
-                        }
+                    const titleText = `⚡ 現場連絡: ${payload.new.name || 'スタッフ'}`;
+                    const bodyText = payload.new.body || '新しいメッセージが投稿されました。';
+
+                    // iPhone (ホーム画面PWA) 環境ではService Workerのメッセージ中継を使って通知を出す
+                    if (Notification.permission === "granted" && navigator.serviceWorker && navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'SHOW_NOTIFICATION',
+                            title: titleText,
+                            body: bodyText
+                        });
+                        console.log("🚀 Service Workerへ通知発火シグナルを送りました。");
                     } else {
-                        console.warn("🔕 ブラウザの通知許可（Permission）が下りていません。");
+                        // 通常のPC・デスクトップ用フォールバック
+                        if (Notification.permission === "granted") {
+                            new Notification(titleText, { body: bodyText, icon: "icon.png" });
+                        } else {
+                            console.warn("🔕 アプリに通知権限がありません。");
+                        }
                     }
                 }
             }).subscribe();
@@ -1313,7 +1329,7 @@
             }
         }
 
-        // 💡 403エラーの原因を排除: OSに対する純粋な通知許可要求のみを実行
+        // 💡 403権限エラーの発生源を回避し、OSに対する純粋な通知許可要求のみを実行
         async function initPushNotification() {
             if (!("Notification" in window)) {
                 console.log("📢 このブラウザ環境はOS通知機能に非対応です。");
@@ -1323,13 +1339,18 @@
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === "granted") {
-                    console.log("🔔 OS通知の表示許可を確認しました。BBSリアルタイム通知が有効です。");
+                    console.log("🔔 OS通知の表示許可を確認しました。PWA通知中継システムが有効です。");
                     
-                    // 疎通テスト用ポップアップ（リロード時に1発自動で鳴ります）
-                    new Notification("⚡ 通知システム開通", {
-                        body: "Supabaseリアルタイム通知の受信準備が完了しました！",
-                        icon: "icon.png"
-                    });
+                    // 開通確認用の疎通テストポップアップ（アプリ起動3秒後にiPhone画面で鳴ります）
+                    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'SHOW_NOTIFICATION',
+                            title: "⚡ 通知システム開通",
+                            body: "iPhone PWA通知の中継準備がすべて完了しました！"
+                        });
+                    } else {
+                        new Notification("⚡ 通知システム開通", { body: "デスクトップ通知の受信準備が完了しました！", icon: "icon.png" });
+                    }
                 } else {
                     console.log("🔕 通知がブロック、または未許可の状態です。");
                 }
