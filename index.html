@@ -11,13 +11,16 @@
     
     <meta name="mobile-web-app-capable" content="yes">
     
-    <!-- 📄 PWA用マニフェストファイルの読み込み -->
     <link rel="manifest" href="manifest.json">
     <script>
         // iPhoneで通知を有効化するためにService Workerをバックグラウンドに登録
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('🔔 Service Worker 登録成功:', reg))
+                .then(reg => {
+                    console.log('🔔 Service Worker 登録成功:', reg);
+                    // 登録成功後にプッシュ通知のセットアップを開始
+                    initPushNotification(reg);
+                })
                 .catch(err => console.error('❌ Service Worker 登録失敗:', err));
         }
 
@@ -92,7 +95,6 @@
         </div>
     </div>
 
-    <!-- 画像をタップしたときの全画面拡大モーダル -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
         <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
         <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
@@ -766,7 +768,6 @@
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
         }
 
-        // 💡 【iPhone完全対応】Websocket電波をキャッチしたら、Service Worker(sw.js)に通知発火シグナルを送信する
         function initRealtimeListener() {
             if (!globalThis.sb || !currentEventId) return;
             
@@ -775,30 +776,6 @@
             
             globalThis.sb.channel('db-messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `event_id=eq.${currentEventId}` }, (payload) => {
                 fetchSupabaseData(true);
-                
-                if (payload.eventType === 'INSERT' && payload.new) {
-                    console.log("📨 新着メッセージをキャッチ:", payload.new);
-                    
-                    const titleText = `⚡ 現場連絡: ${payload.new.name || 'スタッフ'}`;
-                    const bodyText = payload.new.body || '新しいメッセージが投稿されました。';
-
-                    // iPhone (ホーム画面PWA) 環境ではService Workerのメッセージ中継を使って通知を出す
-                    if (Notification.permission === "granted" && navigator.serviceWorker && navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({
-                            type: 'SHOW_NOTIFICATION',
-                            title: titleText,
-                            body: bodyText
-                        });
-                        console.log("🚀 Service Workerへ通知発火シグナルを送りました。");
-                    } else {
-                        // 通常のPC・デスクトップ用フォールバック
-                        if (Notification.permission === "granted") {
-                            new Notification(titleText, { body: bodyText, icon: "icon.png" });
-                        } else {
-                            console.warn("🔕 アプリに通知権限がありません。");
-                        }
-                    }
-                }
             }).subscribe();
         }
 
@@ -1329,34 +1306,65 @@
             }
         }
 
-        // 💡 403権限エラーの発生源を回避し、OSに対する純粋な通知許可要求のみを実行
-        async function initPushNotification() {
-            if (!("Notification" in window)) {
-                console.log("📢 このブラウザ環境はOS通知機能に非対応です。");
+        // 💡 取得したWebプッシュ用デバイストークンをSupabaseへ安全に自動記録するコアロジック
+        async function initPushNotification(swRegistration) {
+            if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+                console.log("📢 このブラウザ環境はOSプッシュ通知に非対応です。");
                 return;
             }
             
             try {
                 const permission = await Notification.requestPermission();
-                if (permission === "granted") {
-                    console.log("🔔 OS通知の表示許可を確認しました。PWA通知中継システムが有効です。");
-                    
-                    // 開通確認用の疎通テストポップアップ（アプリ起動3秒後にiPhone画面で鳴ります）
-                    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({
-                            type: 'SHOW_NOTIFICATION',
-                            title: "⚡ 通知システム開通",
-                            body: "iPhone PWA通知の中継準備がすべて完了しました！"
-                        });
+                if (permission !== "granted") {
+                    console.log("🔕 通知が許可されませんでした。");
+                    return;
+                }
+
+                // 🚨 重要: ここをご自身のVAPID公開鍵に必ず書き換えてください
+                const VAPID_PUBLIC_KEY = "BBu6HO1dufz6j0jC8u1PFD1rKpjoMHE4jLp0uN7I7YEJdHdCMHVuGe_YvG6cCX_0CiDT0pEqX1FyM4kJlJgDrPQ"; 
+                
+                const subscribeOptions = {
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                };
+
+                let subscription = await swRegistration.pushManager.getSubscription();
+                if (!subscription) {
+                    subscription = await swRegistration.pushManager.subscribe(subscribeOptions);
+                }
+
+                console.log("🚀 デバイストークン取得成功:", subscription);
+
+                // サブスクリプション情報（エンドポイントと暗号化鍵）をSupabaseのテーブルへ書き込み
+                if (globalThis.sb) {
+                    const subscriptionJson = subscription.toJSON();
+                    const { error } = await globalThis.sb.from('push_subscriptions').upsert({
+                        endpoint: subscriptionJson.endpoint,
+                        auth_key: subscriptionJson.keys?.auth,
+                        p256dh_key: subscriptionJson.keys?.p256dh
+                    }, { onConflict: 'endpoint' });
+
+                    if (error) {
+                        console.error("❌ Supabaseへのトークン保存に失敗:", error.message);
                     } else {
-                        new Notification("⚡ 通知システム開通", { body: "デスクトップ通知の受信準備が完了しました！", icon: "icon.png" });
+                        console.log("✅ 常時プッシュ通知用宛先データをSupabaseへ登録完了！");
                     }
-                } else {
-                    console.log("🔕 通知がブロック、または未許可の状態です。");
                 }
             } catch (err) {
-                console.error("通知の初期化エラー:", err);
+                console.error("プッシュ通知の初期化エラー:", err);
             }
+        }
+
+        // VAPIDキー変換用の補助関数
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -1364,9 +1372,6 @@
             const cachedName = localStorage.getItem('ekiden_bbs_name');
             if(cachedName && document.getElementById('msgName')) document.getElementById('msgName').value = cachedName;
             loadEventMenu();
-
-            // 起動3秒後に通知システムへのアクセス許可確認を行う
-            setTimeout(initPushNotification, 3000);
         });
     </script>
 </body>
