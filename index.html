@@ -8,23 +8,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="駅伝機材管理">
-    
     <meta name="mobile-web-app-capable" content="yes">
-    
     <link rel="manifest" href="manifest.json">
+    
     <script>
-        // 🛠️ Service Worker 登録ロジック
-        let swRegObject = null; // タップイベントに引き渡すためにグローバル保持
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => {
-                    console.log('🔔 Service Worker 登録成功:', reg);
-                    swRegObject = reg;
-                    // ⚠️ 自動実行(initPushNotification)はiOSセキュリティブロックを招くためここでは呼ばない
-                })
-                .catch(err => console.error('❌ Service Worker 登録失敗:', err));
-        }
-
         if (!localStorage.getItem('ekiden_secure_session')) {
             window.location.href = "login.html";
         }
@@ -85,7 +72,7 @@
 <body class="bg-bgDark text-slate-100 overflow-hidden p-3 md:p-4 font-sans flex flex-col select-none">
 
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
-        <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><div class="fas fa-circle-notch"></div></div>
+        <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
         <p id="loadingText" class="text-[10px] text-slate-400 font-mono tracking-widest">CONNECTING TO SUPABASE...</p>
         <div id="errorDiagnostic" class="hidden max-w-md w-full bg-slate-900 border border-borderStroke p-4 rounded-xl text-left space-y-2 mt-1">
             <p class="text-accentGreen font-black text-xs flex items-center gap-1.5"><i class="fas fa-terminal"></i> リアルタイム同期ログ</p>
@@ -200,7 +187,7 @@
             </div>
             <div class="p-4 overflow-y-auto flex-1 space-y-2 select-none" id="locationManagerList"></div>
             <div class="bg-slate-900/90 px-4 py-3 border-t border-borderStroke flex justify-between items-center shrink-0 gap-2">
-                <p id="lblOrderSavedStatus" class="text-[10px] font-bold text-yellow-500 font-mono"></p>
+                <p id="lblOrderSavedStatus" class="text-[10px] font-bold text-slate-500 font-mono"></p>
                 <div class="flex gap-1.5 ml-auto">
                     <button onclick="closeLocationManagerModal()" class="bg-slate-800 text-gray-300 px-4 py-1.5 rounded-lg font-bold text-xs">閉じる</button>
                     <button onclick="saveLocationOrder()" class="bg-accentGreen text-bgDark font-black px-4 py-1.5 rounded-lg text-xs shadow-lg active:scale-95 transition">
@@ -581,8 +568,8 @@
                 }
                 document.getElementById('pageEventSelect')?.classList.remove('hidden');
                 showLoading(false);
-            } catch (err) { 
-                logStatus("❌ 大会ロード失敗: " + err.message); 
+            } catch (err) {
+                logStatus("❌ 大会ロード失敗: " + err.message);
                 document.getElementById('errorDiagnostic')?.classList.remove('hidden');
             }
         }
@@ -650,7 +637,6 @@
             } catch (err) { alert("作成失敗: " + err.message); }
         }
 
-        // 📲 大会ファイル選択（＝ログイン完了の瞬間）に通知認証を安全に挟み込む
         function selectEventFile(eventId, eventName) {
             currentEventId = eventId;
             currentEventName = eventName;
@@ -662,12 +648,6 @@
             switchTab('list');
             fetchSupabaseData();
             initRealtimeListener();
-
-            // ⚡ iOS PWA対策：ユーザーが大会をタップした「この瞬間」なら通知権限ポップアップが確実に発動します
-            if (swRegObject) {
-                console.log("📲 ユーザーインタラクションを検知: プッシュ初期化をキックします");
-                initPushNotification(swRegObject);
-            }
         }
 
         function returnToEventMenu() { currentEventId = null; document.getElementById('mainAppContent')?.classList.add('hidden'); document.getElementById('bottomNavBar')?.classList.add('hidden'); loadEventMenu(); }
@@ -700,12 +680,14 @@
                     .from('event_assignments')
                     .select(`location, gear_id, gears:gear_id (id, name, category, num, mfr, serial, asset, attachments, image_url)`)
                     .eq('event_id', currentEventId);
-                    
+                
                 if (!e1 && t1 && t1.length > 0 && t1[0].gears !== null) {
                     assignData = t1;
                 } else {
                     let { data: t2, error: e2 } = await globalThis.sb
-                        .from('event_assignments').select(`location, gear_id, gears (id, name, category, num, mfr, serial, asset, attachments, image_url)`).eq('event_id', currentEventId);
+                        .from('event_assignments')
+                        .select(`location, gear_id, gears (id, name, category, num, mfr, serial, asset, attachments, image_url)`)
+                        .eq('event_id', currentEventId);
                     if (!e2) assignData = t2;
                 }
 
@@ -754,7 +736,7 @@
             if (globalThis.sb && currentEventId) {
                 try {
                     const { data: masterGears } = await globalThis.sb.from('gears').select('id');
-                    const { data: currentAssigned = [] } = await globalThis.sb.from('event_assignments').select('gear_id').eq('event_id', currentEventId);
+                    const { data: currentAssigned } = await globalThis.sb.from('event_assignments').select('gear_id').eq('event_id', currentEventId);
                     
                     if (masterGears) {
                         const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id)));
@@ -778,13 +760,9 @@
 
         function initRealtimeListener() {
             if (!globalThis.sb || !currentEventId) return;
-            
             globalThis.sb.channel('db-assignments').on('postgres_changes', { event: '*', schema: 'public', table: 'event_assignments', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
+            globalThis.sb.channel('db-messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
             globalThis.sb.channel('db-locations').on('postgres_changes', { event: '*', schema: 'public', table: 'locations', filter: `event_id=eq.${currentEventId}` }, () => { fetchSupabaseData(true); }).subscribe();
-            
-            globalThis.sb.channel('db-messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `event_id=eq.${currentEventId}` }, (payload) => {
-                fetchSupabaseData(true);
-            }).subscribe();
         }
 
         async function changeGearLocation(gearId, newLoc) {
@@ -929,17 +907,6 @@
             }
             if (document.getElementById('bbsFormContainer')) document.getElementById('bbsFormContainer').style.display = isViewer ? 'none' : 'block';
             globalThis.isViewerMode = isViewer;
-
-            if (isAdmin && !document.getElementById('btnGoImageManager')) {
-                const headerBar = document.getElementById('btnManualRefresh').parentElement;
-                if (headerBar) {
-                    headerBar.insertAdjacentHTML('afterbegin', `
-                        <a id="btnGoImageManager" href="image-manager.html" class="bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-500 font-bold text-[10px] px-2.5 py-1 rounded-full transition active:scale-[0.95] flex items-center gap-1">
-                            <i class="fas fa-images"></i> 画像マスター
-                        </a>
-                    `);
-                }
-            }
         }
 
         function openLocationManagerModal() { 
@@ -1312,67 +1279,6 @@
             } finally { 
                 showLoading(false); 
             }
-        }
-
-        // 💡 取得したWebプッシュ用デバイストークをSupabaseへ安全に自動記録するコアロジック
-        async function initPushNotification(swRegistration) {
-            if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-                console.log("📢 このブラウザ環境はOSプッシュ通知に非対応です。");
-                return;
-            }
-            
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission !== "granted") {
-                    console.log("🔕 通知が許可されませんでした。");
-                    return;
-                }
-
-                // 🚨 重要: ここをご自身のVAPID公開鍵に必ず書き換えてください
-                const VAPID_PUBLIC_KEY = "BBu6HO1dufz6j0jC8u1PFD1rKpjoMHE4jLp0uN7I7YEJdHdCMHVuGe_YvG6cCX_0CiDT0pEqX1FyM4kJlJgDrPQ"; 
-                
-                const subscribeOptions = {
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-                };
-
-                let subscription = await swRegistration.pushManager.getSubscription();
-                if (!subscription) {
-                    subscription = await swRegistration.pushManager.subscribe(subscribeOptions);
-                }
-
-                console.log("🚀 デバイストークン取得成功:", subscription);
-
-                // サブスクリプション情報（エンドポイントと暗号化鍵）をSupabaseのテーブルへ書き込み
-                if (globalThis.sb) {
-                    const subscriptionJson = subscription.toJSON();
-                    const { error } = await globalThis.sb.from('push_subscriptions').upsert({
-                        endpoint: subscriptionJson.endpoint,
-                        auth_key: subscriptionJson.keys?.auth,
-                        p256dh_key: subscriptionJson.keys?.p256dh
-                    }, { onConflict: 'endpoint' });
-
-                    if (error) {
-                        console.error("❌ Supabaseへのトークン保存に失敗:", error.message);
-                    } else {
-                        console.log("✅ 常時プッシュ通知用宛先データをSupabaseへ登録完了！");
-                    }
-                }
-            } catch (err) {
-                console.error("プッシュ通知の初期化エラー:", err);
-            }
-        }
-
-        // VAPIDキー変換用の補助関数
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-            }
-            return outputArray;
         }
 
         document.addEventListener("DOMContentLoaded", () => {
