@@ -359,7 +359,6 @@
         </div>
 
         <div id="pageBBS" class="flex-1 flex flex-col overflow-hidden space-y-2 hidden">
-            <!-- 🔔 通知設定トグルスイッチパネル（新設） -->
             <div class="bg-slate-900 border border-borderStroke px-3 py-2 rounded-xl flex items-center justify-between shrink-0 gap-4">
                 <div class="flex items-center gap-2">
                     <div class="w-7 h-7 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400 text-xs shrink-0">
@@ -878,6 +877,24 @@
             document.getElementById('btnCancelEdit').classList.add('hidden');
         }
 
+        // ==========================================
+        // 🗑️ BBSメッセージを削除する関数（今回追加）
+        // ==========================================
+        async function deleteBBSMessage(id) {
+            if (!globalThis.sb || !currentEventId) return;
+            if (globalThis.isViewerMode) return alert("権限がありません。");
+            if (!confirm("本当にこのメッセージを削除しますか？")) return;
+            
+            try {
+                const { error } = await globalThis.sb.from('messages').delete().eq('id', id);
+                if (error) throw error;
+                // リアルタイムリスナーにより自動で画面は更新されますが、即時反映のため手動呼び出し
+                await fetchSupabaseData(true);
+            } catch (err) {
+                alert("削除失敗: " + err.message);
+            }
+        }
+
         async function addGear() {
             if (!globalThis.sb || !currentEventId) return;
             const name = document.getElementById('addName').value.trim();
@@ -1223,6 +1240,9 @@
             document.getElementById('imageZoomModal')?.classList.add('hidden');
         }
 
+        // ==========================================
+        // 🔄 BBS表示レンダリング関数（編集・削除ボタンを追加）
+        // ==========================================
         function renderBBS() {
             const container = document.getElementById('bbsTimeline'); if (!container) return;
             if (bbsMessages.length === 0) { container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">投稿はありません。</div>`; return; }
@@ -1236,7 +1256,11 @@
                                 <span class="text-accentGreen font-bold text-xs truncate">${msg.name}</span>
                                 <span class="text-[9px] text-slate-500 font-mono">${timeStr}</span>
                             </div>
-                            ${!globalThis.isViewerMode ? `<button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 text-slate-400 border border-borderStroke px-1.5 py-0.5 rounded">編集</button>` : ''}
+                            ${!globalThis.isViewerMode ? `
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 text-slate-400 hover:text-white border border-borderStroke px-1.5 py-0.5 rounded transition">編集</button>
+                                <button onclick="deleteBBSMessage('${msg.id}')" class="text-[9px] bg-slate-900 text-rose-500 hover:bg-rose-900/60 border border-borderStroke px-1.5 py-0.5 rounded transition">削除</button>
+                            </div>` : ''}
                         </div>
                         <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight pt-0.5 keep-word">${msg.body}</p>
                     </div>
@@ -1431,7 +1455,6 @@
                         // 1. ブラウザ（端末）側の購読を解除
                         await subscription.unsubscribe();
                         // 2. データベース（Supabase）側から対象エンドポイントのレコードを削除
-                        // ※ JSONオブジェクト内の特定項目をキーにするため、一度テキスト一致か全体比較等で処理
                         await globalThis.sb.from('push_subscriptions').delete().textSearch('subscription', endpoint);
                     }
                     alert("通知を完全に解除しました。");
