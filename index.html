@@ -784,6 +784,9 @@
             }
         }
 
+        // ========================================================
+        // 🛠️ 【最新統合】大会ごとの重複を完全に防止する同期ロジック
+        // ========================================================
         async function manualRefreshData() {
             const icon = document.getElementById('iconRefresh');
             if (icon) icon.classList.add('animate-spin');
@@ -792,22 +795,34 @@
             if (globalThis.sb && currentEventId) {
                 try {
                     const { data: masterGears } = await globalThis.sb.from('gears').select('id');
-                    const { data: currentAssigned } = await globalThis.sb.from('event_assignments').select('gear_id').eq('event_id', currentEventId);
+                    
+                    // 💡 この大会IDに紐付いているアサイン状況だけを取得
+                    const { data: currentAssigned } = await globalThis.sb
+                        .from('event_assignments')
+                        .select('gear_id')
+                        .eq('event_id', currentEventId);
                     
                     if (masterGears) {
                         const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id)));
+                        
+                        // まだこの大会に登録されていない機材だけを抽出（二重アサインを完全ガード）
                         const missingGears = masterGears.filter(g => !assignedIds.has(String(g.id)));
                         
                         if (missingGears.length > 0) {
                             logStatus(`💡 差分を発見: ${missingGears.length}件の新規機材を大会に自動同期します。`);
                             const insertRecords = missingGears.map(g => ({
-                                event_id: currentEventId, gear_id: g.id, location: "no assign"
+                                event_id: currentEventId, 
+                                gear_id: g.id, 
+                                location: "no assign"
                             }));
                             await globalThis.sb.from('event_assignments').insert(insertRecords);
+                        } else {
+                            logStatus("ℹ️ この大会に同期すべき新規機材はありませんでした。");
                         }
                     }
                 } catch (e) {
                     console.error("差分自動同期失敗:", e);
+                    logStatus("❌ 差分同期中にエラーが発生しました。");
                 }
             }
             await fetchSupabaseData(false);
@@ -878,7 +893,7 @@
         }
 
         // ==========================================
-        // 🗑️ BBSメッセージを削除する関数（今回追加）
+        // 🗑️ BBSメッセージを削除する関数
         // ==========================================
         async function deleteBBSMessage(id) {
             if (!globalThis.sb || !currentEventId) return;
@@ -888,7 +903,6 @@
             try {
                 const { error } = await globalThis.sb.from('messages').delete().eq('id', id);
                 if (error) throw error;
-                // リアルタイムリスナーにより自動で画面は更新されますが、即時反映のため手動呼び出し
                 await fetchSupabaseData(true);
             } catch (err) {
                 alert("削除失敗: " + err.message);
@@ -1240,9 +1254,6 @@
             document.getElementById('imageZoomModal')?.classList.add('hidden');
         }
 
-        // ==========================================
-        // 🔄 BBS表示レンダリング関数（編集・削除ボタンを追加）
-        // ==========================================
         function renderBBS() {
             const container = document.getElementById('bbsTimeline'); if (!container) return;
             if (bbsMessages.length === 0) { container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">投稿はありません。</div>`; return; }
@@ -1362,9 +1373,6 @@
             }
         }
 
-        // ==========================================
-        // 🔔 📡 プッシュ通知（Web Push / PWA）制御ロジック
-        // ==========================================
         async function syncPushToggleState() {
             const toggle = document.getElementById('togglePushNotification');
             if (!toggle) return;
@@ -1398,7 +1406,6 @@
             }
 
             if (element.checked) {
-                // 🔔 ONにする処理
                 showLoading(true, "通知サービスを登録中...");
                 const permission = await Notification.requestPermission();
                 if (permission !== 'granted') {
@@ -1410,8 +1417,6 @@
 
                 try {
                     const registration = await navigator.serviceWorker.ready;
-                    
-                    // 既存のサブスクリプションがあれば一度解除してクリーンアップ
                     const oldSub = await registration.pushManager.getSubscription();
                     if (oldSub) await oldSub.unsubscribe();
 
@@ -1419,13 +1424,11 @@
                         throw new Error("VAPID_PUBLIC_KEY が初期値のままです。コード内の値をSupabaseの公開鍵に書き換えてください。");
                     }
 
-                    // 新しいエンドポイントを発行
                     const subscription = await registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
                     });
 
-                    // 宛先トークンを Supabase `push_subscriptions` へ書き込み
                     const { error } = await globalThis.sb.from('push_subscriptions').insert([{
                         subscription: subscription.toJSON()
                     }]);
@@ -1441,7 +1444,6 @@
                     showLoading(false);
                 }
             } else {
-                // 📴 OFFにする処理
                 if (!confirm("この端末へのプッシュ通知を解除しますか？")) {
                     element.checked = true;
                     return;
@@ -1452,9 +1454,7 @@
                     const subscription = await registration.pushManager.getSubscription();
                     if (subscription) {
                         const endpoint = subscription.endpoint;
-                        // 1. ブラウザ（端末）側の購読を解除
                         await subscription.unsubscribe();
-                        // 2. データベース（Supabase）側から対象エンドポイントのレコードを削除
                         await globalThis.sb.from('push_subscriptions').delete().textSearch('subscription', endpoint);
                     }
                     alert("通知を完全に解除しました。");
@@ -1466,7 +1466,6 @@
             }
         }
 
-        // VAPIDキー（Base64URL）をブラウザ標準の規格（Uint8Array）へ変換する補助関数
         function urlBase64ToUint8Array(base64String) {
             const padding = '='.repeat((4 - base64String.length % 4) % 4);
             const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
@@ -1479,7 +1478,6 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            // 🌐 Service Workerのバックグラウンド自動登録
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./service-worker.js', { scope: './' })
                     .then(reg => console.log('🔔 ServiceWorker 登録成功 scope:', reg.scope))
