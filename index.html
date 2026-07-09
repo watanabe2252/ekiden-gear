@@ -537,6 +537,7 @@
             
             if(tabs[tab]) tabs[tab].classList.remove('hidden');
             if(navs[tab]) {
+                navs[tab].text_slate_400 = 'text-slate-400';
                 navs[tab].classList.remove('text-slate-400');
                 navs[tab].classList.add('text-accentGreen');
             }
@@ -880,6 +881,34 @@
             } catch (err) {
                 alert("削除失敗: " + err.message);
             }
+        }
+
+        // ==========================================
+        // 🔄 BBS表示レンダリング関数（復活）
+        // ==========================================
+        function renderBBS() {
+            const container = document.getElementById('bbsTimeline'); if (!container) return;
+            if (bbsMessages.length === 0) { container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">投稿はありません。</div>`; return; }
+            container.innerHTML = bbsMessages.map(msg => {
+                const date = new Date(msg.created_at);
+                const timeStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                return `
+                    <div class="bg-cardBg border border-borderStroke p-2.5 rounded-xl space-y-1">
+                        <div class="flex items-center justify-between border-b border-borderStroke/40 pb-1 gap-2">
+                            <div class="flex items-center gap-2 truncate">
+                                <span class="text-accentGreen font-bold text-xs truncate">${msg.name}</span>
+                                <span class="text-[9px] text-slate-500 font-mono">${timeStr}</span>
+                            </div>
+                            ${!globalThis.isViewerMode ? `
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 text-slate-400 hover:text-white border border-borderStroke px-1.5 py-0.5 rounded transition">編集</button>
+                                <button onclick="deleteBBSMessage('${msg.id}')" class="text-[9px] bg-slate-900 text-rose-500 hover:bg-rose-900/60 border border-borderStroke px-1.5 py-0.5 rounded transition">削除</button>
+                            </div>` : ''}
+                        </div>
+                        <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight pt-0.5 keep-word">${msg.body}</p>
+                    </div>
+                `;
+            }).join('');
         }
 
         async function addGear() {
