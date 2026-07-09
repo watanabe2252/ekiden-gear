@@ -117,11 +117,6 @@
         </div>
     </div>
 
-    <div id="imageZoomModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden" onclick="closeZoomModal()">
-        <button class="absolute top-4 right-4 text-white text-xl p-2 focus:outline-none"><i class="fas fa-times"></i></button>
-        <img id="zoomedImage" src="" alt="拡大画像" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
-    </div>
-
     <div id="pageEventSelect" class="fixed inset-0 bg-bgDark z-40 flex flex-col items-center justify-center p-4 text-center hidden">
         <div class="max-w-md w-full bg-cardBg border border-borderStroke p-5 rounded-2xl shadow-2xl space-y-4">
             <div class="border-b border-borderStroke pb-3 flex justify-between items-center gap-2">
@@ -240,16 +235,6 @@
             </div>
             <div class="p-4 space-y-3 text-xs overflow-y-auto flex-1">
                 <input type="hidden" id="editTargetId">
-                <div class="flex gap-3 bg-bgDark border border-borderStroke p-3 rounded-xl items-center">
-                    <div id="imagePreviewContainer" class="w-24 h-24 bg-slate-950 rounded-xl border border-borderStroke flex flex-col items-center justify-center text-slate-600 overflow-hidden shrink-0 shadow-inner cursor-pointer hover:opacity-80 p-1"></div>
-                    <div id="imageUploadControls" class="space-y-1.5 w-full text-left">
-                        <input type="file" id="editImageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-                        <div class="flex gap-1.5 flex-wrap">
-                            <button id="btnCameraUpload" onclick="document.getElementById('editImageInput').click()" class="bg-slate-800 text-yellow-400 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-xl font-bold text-[10px] whitespace-nowrap transition active:scale-[0.95]"><i class="fas fa-camera mr-1"></i> 写真を追加・変更</button>
-                            <button id="deleteImageBtn" onclick="deleteGearImage()" class="bg-slate-950 text-rose-500 border border-borderStroke px-3 py-2 rounded-xl font-bold text-[10px] hidden whitespace-nowrap transition active:scale-[0.95]">削除</button>
-                        </div>
-                    </div>
-                </div>
                 <div class="grid grid-cols-3 gap-2">
                     <div class="bg-bgDark p-1.5 rounded-xl border border-borderStroke flex flex-col justify-center min-w-0">
                         <label class="text-slate-500 block text-[9px] font-bold whitespace-nowrap">機材ID</label>
@@ -492,8 +477,6 @@
         let userRole = "viewer";   
         let gears = [];              
         let bbsMessages = [];
-        let currentUploadedUrl = "";
-        let dragTargetElement = null;
 
         // 🔑 【重要】Supabaseの「Project Settings」>「API」>「VAPID Keys」にある公開鍵をここに設定してください
         const VAPID_PUBLIC_KEY = "BBu6HO1dufz6j0jC8u1PFD1rKpjoMHE4jLp0uN7I7YEJdHdCMHVuGe_YvG6cCX_0CiDT0pEqX1FyM4kJlJgDrPQ";
@@ -734,7 +717,7 @@
                 let assignData = null;
                 let { data: t1, error: e1 } = await globalThis.sb
                     .from('event_assignments')
-                    .select(`location, gear_id, gears:gear_id (id, name, category, num, mfr, serial, asset, attachments, image_url)`)
+                    .select(`location, gear_id, gears:gear_id (id, name, category, num, mfr, serial, asset, attachments)`)
                     .eq('event_id', currentEventId);
                 
                 if (!e1 && t1 && t1.length > 0 && t1[0].gears !== null) {
@@ -742,7 +725,7 @@
                 } else {
                     let { data: t2, error: e2 } = await globalThis.sb
                         .from('event_assignments')
-                        .select(`location, gear_id, gears (id, name, category, num, mfr, serial, asset, attachments, image_url)`)
+                        .select(`location, gear_id, gears (id, name, category, num, mfr, serial, asset, attachments)`)
                         .eq('event_id', currentEventId);
                     if (!e2) assignData = t2;
                 }
@@ -755,12 +738,12 @@
                                 gears.push({
                                     id: item.gears.id, name: item.gears.name, category: item.gears.category || "未分類", num: item.gears.num,
                                     mfr: item.gears.mfr, serial: item.gears.serial, asset: item.gears.asset, attachments: item.gears.attachments,
-                                    image_url: item.gears.image_url, location: item.location || "no assign"
+                                    location: item.location || "no assign"
                                 });
                             } else {
                                 gears.push({
                                     id: item.gear_id || "UNKNOWN-ID", name: "名称未定義 (マスター未同期)", category: "未分類", num: "-",
-                                    mfr: "-", serial: "-", asset: "-", attachments: "", image_url: "", location: item.location || "no assign"
+                                    mfr: "-", serial: "-", asset: "-", attachments: "", location: item.location || "no assign"
                                 });
                             }
                         }
@@ -784,9 +767,6 @@
             }
         }
 
-        // ========================================================
-        // 🛠️ 【最新統合】大会ごとの重複を完全に防止する同期ロジック
-        // ========================================================
         async function manualRefreshData() {
             const icon = document.getElementById('iconRefresh');
             if (icon) icon.classList.add('animate-spin');
@@ -795,8 +775,6 @@
             if (globalThis.sb && currentEventId) {
                 try {
                     const { data: masterGears } = await globalThis.sb.from('gears').select('id');
-                    
-                    // 💡 この大会IDに紐付いているアサイン状況だけを取得
                     const { data: currentAssigned } = await globalThis.sb
                         .from('event_assignments')
                         .select('gear_id')
@@ -804,8 +782,6 @@
                     
                     if (masterGears) {
                         const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id)));
-                        
-                        // まだこの大会に登録されていない機材だけを抽出（二重アサインを完全ガード）
                         const missingGears = masterGears.filter(g => !assignedIds.has(String(g.id)));
                         
                         if (missingGears.length > 0) {
@@ -892,9 +868,6 @@
             document.getElementById('btnCancelEdit').classList.add('hidden');
         }
 
-        // ==========================================
-        // 🗑️ BBSメッセージを削除する関数
-        // ==========================================
         async function deleteBBSMessage(id) {
             if (!globalThis.sb || !currentEventId) return;
             if (globalThis.isViewerMode) return alert("権限がありません。");
@@ -957,8 +930,7 @@
                     mfr: document.getElementById('editMfr').value.trim(),
                     serial: document.getElementById('editSerial').value.trim(), 
                     asset: document.getElementById('editAsset').value.trim(),
-                    attachments: document.getElementById('editAttachments').value.trim(), 
-                    image_url: currentUploadedUrl
+                    attachments: document.getElementById('editAttachments').value.trim()
                 }).eq('id', id);
 
                 if (updateError) throw updateError;
@@ -1203,77 +1175,25 @@
             displayData.sort(groupByCategoryAndSortNumber);
             
             container.innerHTML = displayData.map(gear => {
-                const modelKey = gear.name ? gear.name.split(/[ ]/)[0] : 'default';
-                
-                const displayImageUrl = (gear.image_url && gear.image_url.trim() !== "")
-                    ? gear.image_url
-                    : `${SUPABASE_URL}/storage/v1/object/public/gear-image/models/${modelKey}.jpg`;
-
                 return `
-                    <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-row p-2 gap-3 items-center" onclick="openMaintModal('${gear.id}')">
+                    <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-col p-3 gap-2 justify-center" onclick="openMaintModal('${gear.id}')">
                         
-                        <div class="w-16 h-16 bg-slate-950 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-borderStroke/60 relative p-0.5">
-                            <img src="${displayImageUrl}" alt="${gear.name}" loading="lazy" 
-                                 class="max-h-full max-w-full object-contain"
-                                 onclick="event.stopPropagation(); openZoomModal('${displayImageUrl}')">
+                        <div class="flex items-center justify-between gap-1 w-full">
+                            <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category}</span>
+                            <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${gear.id}</span>
                         </div>
                         
-                        <div class="flex-1 min-w-0 space-y-1">
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category}</span>
-                                <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${gear.id}</span>
-                            </div>
-                            
-                            <div class="flex items-center gap-1.5 w-full min-w-0">
-                                <span class="font-bold text-white text-xs truncate max-w-[75%]">${gear.name}</span>
-                                <span class="font-mono text-[10px] text-slate-400 font-bold shrink-0">${gear.num || '-'}</span>
-                            </div>
-                            
-                            <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-1.5" onclick="event.stopPropagation()">
-                                <span class="text-[8px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
-                                <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1.5 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
-                                    ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
-                                </select>
-                            </div>
+                        <div class="flex items-center gap-1.5 w-full min-w-0">
+                            <span class="font-bold text-white text-sm truncate max-w-[85%]">${gear.name}</span>
+                            <span class="font-mono text-[11px] text-slate-400 font-black shrink-0">${gear.num || '-'}</span>
                         </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function openZoomModal(imgUrl) {
-            const modal = document.getElementById('imageZoomModal');
-            const zoomedImg = document.getElementById('zoomedImage');
-            if (modal && zoomedImg) {
-                zoomedImg.src = imgUrl;
-                modal.classList.remove('hidden');
-            }
-        }
-
-        function closeZoomModal() {
-            document.getElementById('imageZoomModal')?.classList.add('hidden');
-        }
-
-        function renderBBS() {
-            const container = document.getElementById('bbsTimeline'); if (!container) return;
-            if (bbsMessages.length === 0) { container.innerHTML = `<div class="text-center text-slate-500 py-6 text-xs">投稿はありません。</div>`; return; }
-            container.innerHTML = bbsMessages.map(msg => {
-                const date = new Date(msg.created_at);
-                const timeStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-                return `
-                    <div class="bg-cardBg border border-borderStroke p-2.5 rounded-xl space-y-1">
-                        <div class="flex items-center justify-between border-b border-borderStroke/40 pb-1 gap-2">
-                            <div class="flex items-center gap-2 truncate">
-                                <span class="text-accentGreen font-bold text-xs truncate">${msg.name}</span>
-                                <span class="text-[9px] text-slate-500 font-mono">${timeStr}</span>
-                            </div>
-                            ${!globalThis.isViewerMode ? `
-                            <div class="flex items-center gap-1 shrink-0">
-                                <button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 text-slate-400 hover:text-white border border-borderStroke px-1.5 py-0.5 rounded transition">編集</button>
-                                <button onclick="deleteBBSMessage('${msg.id}')" class="text-[9px] bg-slate-900 text-rose-500 hover:bg-rose-900/60 border border-borderStroke px-1.5 py-0.5 rounded transition">削除</button>
-                            </div>` : ''}
+                        
+                        <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-2 mt-1" onclick="event.stopPropagation()">
+                            <span class="text-[9px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
+                            <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
+                                ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
+                            </select>
                         </div>
-                        <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight pt-0.5 keep-word">${msg.body}</p>
                     </div>
                 `;
             }).join('');
@@ -1308,8 +1228,6 @@
             document.getElementById('editSerial').value = gear.serial || "";
             document.getElementById('editAsset').value = gear.asset || "";
             document.getElementById('editAttachments').value = gear.attachments || "";
-            currentUploadedUrl = gear.image_url || "";
-            refreshModalImagePreview();
 
             const fields = ['editName', 'editCat', 'editNum', 'editMfr', 'editSerial', 'editAsset', 'editAttachments'];
             fields.forEach(f => {
@@ -1317,61 +1235,12 @@
                 if(el) el.disabled = globalThis.isViewerMode;
             });
             
-            if(document.getElementById('btnCameraUpload')) document.getElementById('btnCameraUpload').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
             if(document.getElementById('btnModalDelete')) document.getElementById('btnModalDelete').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
             if(document.getElementById('btnModalSave')) document.getElementById('btnModalSave').style.display = globalThis.isViewerMode ? 'none' : 'inline-block';
             document.getElementById('maintModal')?.classList.remove('hidden');
         }
         
         function closeMaintModal() { document.getElementById('maintModal')?.classList.add('hidden'); }
-
-        function refreshModalImagePreview() {
-            const container = document.getElementById('imagePreviewContainer');
-            const deleteBtn = document.getElementById('deleteImageBtn');
-            const editNameVal = document.getElementById('editName')?.value || 'default';
-            const modelKey = editNameVal.split(/[ ]/)[0];
-            
-            let finalImgUrl = (currentUploadedUrl && currentUploadedUrl.trim() !== "")
-                ? currentUploadedUrl
-                : `${SUPABASE_URL}/storage/v1/object/public/gear-image/models/${modelKey}.jpg`;
-
-            if (finalImgUrl) {
-                if(container) {
-                    container.innerHTML = `<img src="${finalImgUrl}" class="max-w-full max-h-full object-contain rounded-xl shadow-md">`;
-                    container.onclick = () => openZoomModal(finalImgUrl);
-                }
-                if(deleteBtn && !globalThis.isViewerMode && currentUploadedUrl) deleteBtn.classList.remove('hidden');
-            } else {
-                if(container) {
-                    container.innerHTML = `<i class="fas fa-image text-2xl text-slate-700 mb-1"></i><span class="text-[8px] text-slate-500 font-bold uppercase tracking-wider">NO IMAGE</span>`;
-                    container.onclick = null;
-                }
-                if(deleteBtn) deleteBtn.classList.add('hidden');
-            }
-        }
-        
-        function deleteGearImage() { currentUploadedUrl = ""; refreshModalImagePreview(); }
-
-        async function handleImageUpload(event) {
-            if (!globalThis.sb) return;
-            const file = event.target.files[0]; if (!file) return;
-            showLoading(true, "写真データを処理中...");
-            try {
-                const filePath = `${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
-                
-                const { error: uploadError } = await globalThis.sb.storage.from('gear-image').upload(filePath, file);
-                if (uploadError) throw uploadError;
-
-                const { data } = globalThis.sb.storage.from('gear-image').getPublicUrl(filePath);
-                
-                currentUploadedUrl = data.publicUrl; 
-                refreshModalImagePreview();
-            } catch (err) { 
-                alert("アップロードに失敗しました: " + err.message); 
-            } finally { 
-                showLoading(false); 
-            }
-        }
 
         async function syncPushToggleState() {
             const toggle = document.getElementById('togglePushNotification');
