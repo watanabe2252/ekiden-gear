@@ -108,7 +108,7 @@
     <div id="loadingScreen" class="fixed inset-0 bg-bgDark z-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
         <div id="loadingSpinner" class="animate-spin text-accentGreen text-3xl"><i class="fas fa-circle-notch"></i></div>
         <p id="loadingText" class="text-[10px] text-slate-400 font-mono tracking-widest">CONNECTING TO SUPABASE...</p>
-        <div id="errorDiagnostic" class="max-w-md w-full bg-slate-900 border border-borderStroke p-4 rounded-xl text-left space-y-2 mt-1">
+        <div id="errorDiagnostic" class="hidden max-w-md w-full bg-slate-900 border border-borderStroke p-4 rounded-xl text-left space-y-2 mt-1">
             <p class="text-accentGreen font-black text-xs flex items-center gap-1.5"><i class="fas fa-terminal"></i> リアルタイム同期ログ</p>
             <div class="bg-bgDark border border-borderStroke p-2 rounded-lg font-mono text-[10px] text-slate-300 break-all h-24 overflow-y-auto" id="errorDetails"></div>
             <button onclick="forceOpenApp()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-bgDark font-black text-xs py-2 rounded-lg transition shadow-lg">
@@ -716,7 +716,6 @@
                 if (!document.getElementById('locationManagerModal')?.classList.contains('hidden')) renderLocationManagerList();
 
                 let assignData = null;
-                // 🛠️ クエリから「image_url」を除去してリレーションエラーを解消
                 let { data: t1, error: e1 } = await globalThis.sb
                     .from('event_assignments')
                     .select(`location, gear_id, gears:gear_id (id, name, category, num, mfr, serial, asset, attachments)`)
@@ -771,62 +770,61 @@
         }
 
         // ==========================================
-        // 🛠️ 同期処理の強化と詳細ログ追跡
+        // 🛠️ 【修正完了】型変換・揺れを完全吸収する同期処理
         // ==========================================
         async function manualRefreshData() {
             const icon = document.getElementById('iconRefresh');
             if (icon) icon.classList.add('animate-spin');
-            logStatus("⏳ データベース上の新パーツをスキャン中...");
+            logStatus("⏳ 新規機材のインテリジェントスキャンを開始...");
             
             if (globalThis.sb && currentEventId) {
                 try {
-                    logStatus("⚙️ マスター機材テーブル(gears)の全件取得を試みています...");
                     const { data: masterGears, error: masterErr } = await globalThis.sb.from('gears').select('id');
-                    
-                    if (masterErr) {
-                        logStatus(`❌ gearsテーブル取得失敗: ${masterErr.message}`);
-                        throw masterErr;
-                    }
+                    if (masterErr) throw masterErr;
 
-                    logStatus(`⚙️ 現在の大会のアサイン情報(event_assignments)を取得中... (大会ID: ${currentEventId})`);
                     const { data: currentAssigned, error: assignErr } = await globalThis.sb
                         .from('event_assignments')
                         .select('gear_id')
                         .eq('event_id', currentEventId);
-                    
-                    if (assignErr) {
-                        logStatus(`❌ アサイン情報取得失敗: ${assignErr.message}`);
-                        throw assignErr;
-                    }
+                    if (assignErr) throw assignErr;
                     
                     if (masterGears) {
-                        logStatus(`📊 マスター総機材数: ${masterGears.length}件 / 現在登録済み: ${currentAssigned ? currentAssigned.length : 0}件`);
-                        const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id)));
-                        const missingGears = masterGears.filter(g => !assignedIds.has(String(g.id)));
+                        // 💡 文字列の揺れや型変換のミスマッチを吸収するため、すべて小文字・トリム・文字列化してSetを作成
+                        const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id).toLowerCase().trim()));
+                        
+                        // 💡 マスター側のIDも同様の条件に揃えて精密比較を行う
+                        const missingGears = masterGears.filter(g => {
+                            const normalizedId = String(g.id).toLowerCase().trim();
+                            return !assignedIds.has(normalizedId);
+                        });
+                        
+                        logStatus(`📊 マスター総機材: ${masterGears.length}件 / この大会の登録数: ${assignedIds.size}件`);
                         
                         if (missingGears.length > 0) {
-                            logStatus(`💡 差分を発見: ${missingGears.length}件の新規機材を大会に自動同期します。`);
+                            logStatus(`💡 差分を検出: ${missingGears.length}件の未登録機材を流し込みます。`);
+                            
                             const insertRecords = missingGears.map(g => ({
                                 event_id: currentEventId, 
-                                gear_id: g.id, 
+                                gear_id: g.id, // オリジナルの正しいID形式で送信
                                 location: "no assign"
                             }));
+                            
                             const { error: insertErr } = await globalThis.sb.from('event_assignments').insert(insertRecords);
                             if (insertErr) {
-                                logStatus(`❌ 大会への流し込みに失敗: ${insertErr.message}`);
+                                logStatus(`❌ 自動流し込みに失敗: ${insertErr.message}`);
                                 throw insertErr;
                             }
-                            logStatus(`✅ ${missingGears.length}件の機材アサインの作成に成功しました！`);
+                            logStatus(`✅ ${missingGears.length}件の機材を自動アサインしました。`);
                         } else {
-                            logStatus("ℹ️ この大会に同期すべき新規マスター機材はありませんでした。");
+                            logStatus("ℹ️ この大会に同期すべき未登録機材はありません。");
                         }
                     }
                 } catch (e) {
-                    console.error("差分自動同期失敗:", e);
-                    logStatus("❌ 差分同期中に致命的なエラーが発生しました。");
+                    console.error("自動同期エラー:", e);
+                    logStatus("❌ 同期中にエラーが発生しました。");
                 }
             } else {
-                logStatus("❌ Supabaseが初期化されていないか、大会IDが選択されていません。");
+                logStatus("❌ 大会ファイルが選択されていません。");
             }
             await fetchSupabaseData(false);
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
