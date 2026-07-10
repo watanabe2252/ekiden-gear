@@ -770,18 +770,20 @@
         }
 
         // ==========================================
-        // 🛠️ 【修正完了】型変換・揺れを完全吸収する同期処理
+        // 🛠️ 【超強化版】目に見えない文字・全角半角の揺れを完全粉砕する同期処理
         // ==========================================
         async function manualRefreshData() {
             const icon = document.getElementById('iconRefresh');
             if (icon) icon.classList.add('animate-spin');
-            logStatus("⏳ 新規機材のインテリジェントスキャンを開始...");
+            logStatus("⏳ 究極インテリジェントスキャンを開始...");
             
             if (globalThis.sb && currentEventId) {
                 try {
+                    // 1. マスター機材を全件取得
                     const { data: masterGears, error: masterErr } = await globalThis.sb.from('gears').select('id');
                     if (masterErr) throw masterErr;
 
+                    // 2. 現在アサイン済みの機材を全件取得
                     const { data: currentAssigned, error: assignErr } = await globalThis.sb
                         .from('event_assignments')
                         .select('gear_id')
@@ -789,39 +791,50 @@
                     if (assignErr) throw assignErr;
                     
                     if (masterGears) {
-                        // 💡 文字列の揺れや型変換のミスマッチを吸収するため、すべて小文字・トリム・文字列化してSetを作成
-                        const assignedIds = new Set((currentAssigned || []).map(a => String(a.gear_id).toLowerCase().trim()));
+                        // 🧹 文字列を「完全正規化」するインナー関数
+                        // 改行、タブ、スペース、全角英数をすべて半角英数のクリーンな状態に変換
+                        const cleanId = (rawId) => {
+                            if (!rawId) return "";
+                            return String(rawId)
+                                .replace(/[\r\n\t]/g, "") // 改行・タブを消去
+                                .replace(/\s+/g, "")     // すべての空白を消去
+                                .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)) // 全角英数を半角へ
+                                .replace(/[－ーー—–]/g, "-") // 類似するハイフン類を半角マイナスに統一
+                                .toLowerCase();
+                        };
+
+                        // 既にアサインされているIDをクリーン化してSetに格納
+                        const assignedIds = new Set((currentAssigned || []).map(a => cleanId(a.gear_id)));
                         
-                        // 💡 マスター側のIDも同様の条件に揃えて精密比較を行う
+                        // マスター機材のうち、クリーン化したIDがSetに存在しないもの（＝未登録）だけを抽出
                         const missingGears = masterGears.filter(g => {
-                            const normalizedId = String(g.id).toLowerCase().trim();
-                            return !assignedIds.has(normalizedId);
+                            return !assignedIds.has(cleanId(g.id));
                         });
                         
-                        logStatus(`📊 マスター総機材: ${masterGears.length}件 / この大会の登録数: ${assignedIds.size}件`);
+                        logStatus(`📊 マスター総数: ${masterGears.length}件 / 正規化チェック通過未登録: ${missingGears.length}件`);
                         
                         if (missingGears.length > 0) {
-                            logStatus(`💡 差分を検出: ${missingGears.length}件の未登録機材を流し込みます。`);
+                            logStatus(`💡 揺れを吸収した差分 ${missingGears.length} 件を流し込みます。`);
                             
                             const insertRecords = missingGears.map(g => ({
                                 event_id: currentEventId, 
-                                gear_id: g.id, // オリジナルの正しいID形式で送信
+                                gear_id: g.id, // インサートは元のマスターのIDで行う
                                 location: "no assign"
                             }));
                             
                             const { error: insertErr } = await globalThis.sb.from('event_assignments').insert(insertRecords);
                             if (insertErr) {
-                                logStatus(`❌ 自動流し込みに失敗: ${insertErr.message}`);
+                                logStatus(`❌ 強制インサート失敗: ${insertErr.message}`);
                                 throw insertErr;
                             }
-                            logStatus(`✅ ${missingGears.length}件の機材を自動アサインしました。`);
+                            logStatus(`✅ ${missingGears.length}件の機材の自動同期に成功！`);
                         } else {
-                            logStatus("ℹ️ この大会に同期すべき未登録機材はありません。");
+                            logStatus("ℹ️ データベース上、同期が必要な未アサイン機材は見つかりませんでした。");
                         }
                     }
                 } catch (e) {
                     console.error("自動同期エラー:", e);
-                    logStatus("❌ 同期中にエラーが発生しました。");
+                    logStatus(`❌ 同期失敗: ${e.message}`);
                 }
             } else {
                 logStatus("❌ 大会ファイルが選択されていません。");
