@@ -837,7 +837,7 @@
             try {
                 await globalThis.sb.from('event_assignments').delete().eq('event_id', id);
                 await globalThis.sb.from('messages').delete().eq('event_id', id);
-                await globalThis.sb.from('locations').delete().eq('event_id', id);
+                await globalThis.sb.from('locations').delete().eq('id', id);
                 await globalThis.sb.from('events').delete().eq('id', id);
                 closeEditEventModal();
                 await loadEventMenu();
@@ -1139,9 +1139,6 @@
             return numA.localeCompare(numB, undefined, { numeric: true, sensitivity: 'base' });
         }
 
-        // ==========================================
-        // 🛠️ 【修正箇所】右端の機材番号を削除、下段のS/Nを機材番号表示へ変更
-        // ==========================================
         function renderTable() {
             const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
@@ -1168,8 +1165,8 @@
                     </div>
                     
                     <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-2 mt-1" onclick="event.stopPropagation()">
-                        <!-- 💡 シリアル(S/N)の代わりに、元々見にくかった「機材番号」をここに大きく表示 -->
-                        <span class="text-[11px] text-slate-400 font-mono font-black truncate">No: ${gear.num || '-'}</span>
+                        <!-- 💡 「No: 」の固定テキストを削除し、純粋に機材番号の値（マスター登録文字列）のみを表示 -->
+                        <span class="text-[11px] text-slate-400 font-mono font-black truncate">${gear.num || '-'}</span>
                         <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
                             ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
                         </select>
