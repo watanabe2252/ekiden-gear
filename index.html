@@ -13,7 +13,7 @@
     
     <script>
         // ==========================================
-        // 🔄 iOS PWA 特有 of 無限リロード・デッドロック防止ガード
+        // 🔄 iOS PWA 特有の無限リロード・デッドロック防止ガード
         // ==========================================
         (function() {
             const sessionKey = 'ekiden_secure_session';
@@ -49,8 +49,11 @@
         })();
 
         const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
+        // 🔑 【修復完了】混入していた不要な文字列を破棄し、正常な認証トークンに復元しました
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
@@ -781,7 +784,7 @@
                                 }
                                 logStatus(`📦 進捗: ${Math.min(i + CHUNK_SIZE, insertRecords.length)} / ${insertRecords.length} 件アサイン完了...`);
                             }
-                            logStatus(`✅ 全ての機材の自動アサインに完全成功しました！`);
+                            logStatus(`📊 進捗: 全ての機材の自動アサインに完全成功しました！`);
                         } else {
                             logStatus("ℹ️ 現在の大会ファイルに未同期のマスター機材はありません。");
                         }
@@ -1191,9 +1194,6 @@
             `).join('');
         }
 
-        // ==========================================
-        // 🛠️ 【修正箇所】長い機材名での見切れを防ぐ二段（折返し）レイアウト
-        // ==========================================
         function renderMaintenanceTable() {
             const tbody = document.getElementById('maintTableBody'); if(!tbody) return;
             const keyword = document.getElementById('maintSearchKeyword').value.toLowerCase();
@@ -1201,7 +1201,6 @@
             displayData.sort(groupByCategoryAndSortNumber);
             
             tbody.innerHTML = displayData.map(gear => {
-                // 💡 改行（block）を挟み、下の段にゆったり配置することで絶対に番号バッジが見切れない二段構成に変更
                 const numBadge = gear.num ? `<span class="inline-block text-slate-400 font-mono font-black mt-1 text-[10px] bg-slate-800/90 px-1.5 py-0.5 rounded border border-borderStroke/60 font-sans tracking-wide">No. ${gear.num}</span>` : '';
                 return `
                     <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
@@ -1229,7 +1228,7 @@
             if (!globalThis.sb) return;
             if (!('Notification' in window) || !('serviceWorker' in navigator)) { alert("お使いの環境はプッシュ通知に対応していません。"); element.checked = false; return; }
             if (element.checked) {
-                showLoading(true, "通知サービスを登録中..."); const permission = await Notification.requestPermission();
+                showLoading(true, "通知 service を登録中..."); const permission = await Notification.requestPermission();
                 if (permission !== 'granted') { alert("通知が拒否されました。"); element.checked = false; showLoading(false); return; }
                 try {
                     const registration = await navigator.serviceWorker.ready; const oldSub = await registration.pushManager.getSubscription(); if (oldSub) await oldSub.unsubscribe();
