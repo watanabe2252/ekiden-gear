@@ -817,7 +817,6 @@
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
         }
 
-        // --- 以下の共通関数群は前バージョンと同一のまま維持 ---
         function openEditEventModal(id) {
             const ev = events.find(e => e.id === id);
             if (!ev) return;
@@ -1155,6 +1154,9 @@
             return numA.localeCompare(numB, undefined, { numeric: true, sensitivity: 'base' });
         }
 
+        // ==========================================
+        // 🛠️ 【修正箇所】機材名が長い場合に2段（複数行）表示を許可
+        // ==========================================
         function renderTable() {
             const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
@@ -1168,16 +1170,20 @@
             });
             if (displayData.length === 0) { container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-6 text-xs">該当機材なし</div>`; return; }
             displayData.sort(groupByCategoryAndSortNumber);
+            
             container.innerHTML = displayData.map(gear => `
                 <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-col p-3 gap-2 justify-center" onclick="openMaintModal('${gear.id}')">
                     <div class="flex items-center justify-between gap-1 w-full">
                         <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category}</span>
                         <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${gear.id}</span>
                     </div>
-                    <div class="flex items-center gap-1.5 w-full min-w-0">
-                        <span class="font-bold text-white text-sm truncate max-w-[85%]">${gear.name}</span>
-                        <span class="font-mono text-[11px] text-slate-400 font-black shrink-0">${gear.num || '-'}</span>
+                    
+                    <!-- 💡 truncateを削除し、break-words、leading-tightを指定して、長い機材名が2段（複数行）で折り返して全表示されるように修正 -->
+                    <div class="flex items-start justify-between gap-1.5 w-full min-w-0">
+                        <span class="font-bold text-white text-sm break-words leading-tight flex-1 keep-word">${gear.name}</span>
+                        <span class="font-mono text-[11px] text-slate-400 font-black shrink-0 ml-1 pt-0.5">${gear.num || '-'}</span>
                     </div>
+                    
                     <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-2 mt-1" onclick="event.stopPropagation()">
                         <span class="text-[9px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
                         <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
