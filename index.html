@@ -49,7 +49,6 @@
         })();
 
         const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
-        // 🔑 【修復完了】混入していた不要な文字列を破棄し、正常な認証トークンに復元しました
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -404,7 +403,7 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">機材番号</label>
-                        <input type="text" id="addNum" placeholder="例: No.1" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
+                        <input type="text" id="addNum" placeholder="例: 1" class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
                     </div>
                     <div>
                         <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">メーカー名</label>
@@ -695,7 +694,7 @@
                 }
             } catch (err) { 
                 logStatus("❌ 同期エラー発生: " + err.message); 
-                document.getElementById('errorDiagnostic')?.classList.remove('hidden');
+                document.getElementById('errorDiagnostic')?.classList.contains('hidden');
             }
         }
 
@@ -1194,6 +1193,9 @@
             `).join('');
         }
 
+        // ==========================================
+        // 🛠️ 【修正箇所】管理画面の一覧で番号前の「No. 」を非表示に
+        // ==========================================
         function renderMaintenanceTable() {
             const tbody = document.getElementById('maintTableBody'); if(!tbody) return;
             const keyword = document.getElementById('maintSearchKeyword').value.toLowerCase();
@@ -1201,7 +1203,8 @@
             displayData.sort(groupByCategoryAndSortNumber);
             
             tbody.innerHTML = displayData.map(gear => {
-                const numBadge = gear.num ? `<span class="inline-block text-slate-400 font-mono font-black mt-1 text-[10px] bg-slate-800/90 px-1.5 py-0.5 rounded border border-borderStroke/60 font-sans tracking-wide">No. ${gear.num}</span>` : '';
+                // 💡 バッジ内の「No. 」の記述を取り除き、数字(文字列)だけを直接レンダリング
+                const numBadge = gear.num ? `<span class="inline-block text-slate-400 font-mono font-black mt-1 text-[10px] bg-slate-800/90 px-1.5 py-0.5 rounded border border-borderStroke/60 font-sans tracking-wide">${gear.num}</span>` : '';
                 return `
                     <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
                         <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
@@ -1228,7 +1231,7 @@
             if (!globalThis.sb) return;
             if (!('Notification' in window) || !('serviceWorker' in navigator)) { alert("お使いの環境はプッシュ通知に対応していません。"); element.checked = false; return; }
             if (element.checked) {
-                showLoading(true, "通知 service を登録中..."); const permission = await Notification.requestPermission();
+                showLoading(true, "通知サービスを登録中..."); const permission = await Notification.requestPermission();
                 if (permission !== 'granted') { alert("通知が拒否されました。"); element.checked = false; showLoading(false); return; }
                 try {
                     const registration = await navigator.serviceWorker.ready; const oldSub = await registration.pushManager.getSubscription(); if (oldSub) await oldSub.unsubscribe();
