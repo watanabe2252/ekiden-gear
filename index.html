@@ -51,8 +51,6 @@
         const SUPABASE_URL = "https://sqenqerjzgxvtogtjfij.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxZW5xZXJqemd4dnRvZ3RqZmlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzOTEyNzMsImV4cCI6MjA5Nzk2NzI3M30.8Y6vhpdnLL3B9_HySsCZ1wbzA4Jkjl0chqB5RD3iLOg";
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
@@ -434,7 +432,6 @@
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
             </div>
             <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 shadow-xl pb-28">
-                <!-- 💡 ヘッダー幅の割合を元の4列構成に戻しました -->
                 <table class="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr class="bg-slate-900/95 border-b border-borderStroke text-slate-400 text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10">
@@ -804,7 +801,7 @@
             const ev = events.find(e => e.id === id);
             if (!ev) return;
             document.getElementById('editEventTargetId').value = ev.id;
-            document.getElementById('editEventIdDisplay').innerText = ev.id;
+            document.getElementById('editEventDisplay').innerText = ev.id;
             document.getElementById('editEventName').value = ev.name || "";
             document.getElementById('editEventDate').value = ev.date || "";
             document.getElementById('editEventStatus').value = ev.status || "active";
@@ -1195,7 +1192,7 @@
         }
 
         // ==========================================
-        // 🛠️ 【修正箇所】管理画面（一覧表）の「機材名」の後に「機材番号」を表示
+        // 🛠️ 【修正箇所】長い機材名での見切れを防ぐ二段（折返し）レイアウト
         // ==========================================
         function renderMaintenanceTable() {
             const tbody = document.getElementById('maintTableBody'); if(!tbody) return;
@@ -1204,13 +1201,16 @@
             displayData.sort(groupByCategoryAndSortNumber);
             
             tbody.innerHTML = displayData.map(gear => {
-                // 💡 番号データが存在すれば、機材名の後ろに半角スペースを空けてハイライト表示（無ければそのまま表示）
-                const numBadge = gear.num ? ` <span class="text-slate-400 font-mono font-black ml-1 text-[10px] bg-slate-800/80 px-1.5 py-0.5 rounded border border-borderStroke/60">${gear.num}</span>` : '';
+                // 💡 改行（block）を挟み、下の段にゆったり配置することで絶対に番号バッジが見切れない二段構成に変更
+                const numBadge = gear.num ? `<span class="inline-block text-slate-400 font-mono font-black mt-1 text-[10px] bg-slate-800/90 px-1.5 py-0.5 rounded border border-borderStroke/60 font-sans tracking-wide">No. ${gear.num}</span>` : '';
                 return `
                     <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
                         <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
                         <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold">${gear.category}</span></td>
-                        <td class="p-2 font-bold text-white truncate flex items-center h-full min-h-[36px]">${gear.name}${numBadge}</td>
+                        <td class="p-2 font-bold text-white whitespace-normal break-words py-3">
+                            <div class="leading-snug keep-word">${gear.name}</div>
+                            <div>${numBadge}</div>
+                        </td>
                         <td class="p-2 text-right text-yellow-500 font-bold text-[10px]">></td>
                     </tr>
                 `;
