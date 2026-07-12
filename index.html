@@ -13,7 +13,7 @@
     
     <script>
         // ==========================================
-        // 🔄 iOS PWA 特有の無限リロード・デッドロック防止ガード
+        // 🔄 iOS PWA 特有 of 無限リロード・デッドロック防止ガード
         // ==========================================
         (function() {
             const sessionKey = 'ekiden_secure_session';
@@ -31,7 +31,6 @@
                 const now = Date.now();
                 const lastRedirect = sessionStorage.getItem('last_auth_redirect') || 0;
                 
-                // 2.5秒以内に連続してここを通過した場合は無限ループとみなし、強制的に止めてloginへ
                 if (now - lastRedirect < 2500) {
                     sessionStorage.setItem('last_auth_redirect', now);
                     setTimeout(() => {
@@ -43,7 +42,6 @@
                         window.location.replace("login.html");
                     }, 10);
                 }
-                // ループ中の不要なDOMレンダリングをストップさせる
                 window.stop();
             } else {
                 console.log("認証セッション確認完了");
@@ -436,14 +434,13 @@
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
             </div>
             <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 shadow-xl pb-28">
-                <!-- 💡 幅の割合を再配分し、機材番号の入る余白を設定 -->
+                <!-- 💡 ヘッダー幅の割合を元の4列構成に戻しました -->
                 <table class="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr class="bg-slate-900/95 border-b border-borderStroke text-slate-400 text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10">
-                            <th class="p-2 w-[20%] whitespace-nowrap">機材ID</th>
-                            <th class="p-2 w-[15%] whitespace-nowrap">番号</th>
-                            <th class="p-2 w-[20%] whitespace-nowrap">カテゴリー</th>
-                            <th class="p-2 w-[35%] whitespace-nowrap">機材名</th>
+                            <th class="p-2 w-[25%] whitespace-nowrap">機材ID</th>
+                            <th class="p-2 w-[25%] whitespace-nowrap">カテゴリー</th>
+                            <th class="p-2 w-[40%] whitespace-nowrap">機材名</th>
                             <th class="p-2 w-[10%] text-right whitespace-nowrap"></th>
                         </tr>
                     </thead>
@@ -514,9 +511,6 @@
             }
         }
 
-        // ==========================================
-        // 🔄 【タイポ修正】詳細画面が開かなくなるバグを解消
-        // ==========================================
         function switchTab(tab) {
             const tabs = {
                 list: document.getElementById('pageList'),
@@ -541,7 +535,6 @@
             
             if(tabs[tab]) tabs[tab].classList.remove('hidden');
             if(navs[tab]) {
-                // 💡 前回の「navs[tab].text_slate_400 = ...」というエラーを引き起こしていたタイポ行を完全抹消
                 navs[tab].classList.remove('text-slate-400');
                 navs[tab].classList.add('text-accentGreen');
             }
@@ -1157,7 +1150,8 @@
             document.getElementById('editAsset').value = gear.asset || "";
             document.getElementById('editAttachments').value = gear.attachments || "";
             
-            document.getElementById('modalTitle').innerText = `${gear.name || '機材'} 詳細スペック`;
+            const numSuffix = gear.num ? ` ${gear.num}` : '';
+            document.getElementById('modalTitle').innerText = `${gear.name || '機材'}${numSuffix} 詳細スペック`;
             document.getElementById('maintModal')?.classList.remove('hidden');
         }
 
@@ -1201,7 +1195,7 @@
         }
 
         // ==========================================
-        // 🛠️ 【修正箇所】管理画面（メンテナンス表）に番号列を追加
+        // 🛠️ 【修正箇所】管理画面（一覧表）の「機材名」の後に「機材番号」を表示
         // ==========================================
         function renderMaintenanceTable() {
             const tbody = document.getElementById('maintTableBody'); if(!tbody) return;
@@ -1209,16 +1203,18 @@
             let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
             displayData.sort(groupByCategoryAndSortNumber);
             
-            // 💡 <td>に「gear.num（機材番号）」を出力する列を追加し、同一型番が連続しても簡単に識別可能に修正
-            tbody.innerHTML = displayData.map(gear => `
-                <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
-                    <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
-                    <td class="p-2 font-mono font-black text-slate-300 truncate">${gear.num || '-'}</td>
-                    <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold">${gear.category}</span></td>
-                    <td class="p-2 font-bold text-white truncate">${gear.name}</td>
-                    <td class="p-2 text-right text-yellow-500 font-bold text-[10px]">></td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = displayData.map(gear => {
+                // 💡 番号データが存在すれば、機材名の後ろに半角スペースを空けてハイライト表示（無ければそのまま表示）
+                const numBadge = gear.num ? ` <span class="text-slate-400 font-mono font-black ml-1 text-[10px] bg-slate-800/80 px-1.5 py-0.5 rounded border border-borderStroke/60">${gear.num}</span>` : '';
+                return `
+                    <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
+                        <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
+                        <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold">${gear.category}</span></td>
+                        <td class="p-2 font-bold text-white truncate flex items-center h-full min-h-[36px]">${gear.name}${numBadge}</td>
+                        <td class="p-2 text-right text-yellow-500 font-bold text-[10px]">></td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         async function syncPushToggleState() {
