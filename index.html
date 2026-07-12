@@ -436,12 +436,14 @@
                 <input type="text" id="maintSearchKeyword" oninput="renderMaintenanceTable()" placeholder="機材名、ID、カテゴリーで検索..." class="w-full bg-bgDark border border-borderStroke rounded-lg p-1.5 text-xs text-white outline-none">
             </div>
             <div class="bg-cardBg border border-borderStroke rounded-xl overflow-y-auto flex-1 shadow-xl pb-28">
+                <!-- 💡 幅の割合を再配分し、機材番号の入る余白を設定 -->
                 <table class="w-full text-left border-collapse table-fixed">
                     <thead>
                         <tr class="bg-slate-900/95 border-b border-borderStroke text-slate-400 text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10">
-                            <th class="p-2 w-[25%] whitespace-nowrap">機材ID</th>
-                            <th class="p-2 w-[25%] whitespace-nowrap">カテゴリー</th>
-                            <th class="p-2 w-[40%] whitespace-nowrap">機材名</th>
+                            <th class="p-2 w-[20%] whitespace-nowrap">機材ID</th>
+                            <th class="p-2 w-[15%] whitespace-nowrap">番号</th>
+                            <th class="p-2 w-[20%] whitespace-nowrap">カテゴリー</th>
+                            <th class="p-2 w-[35%] whitespace-nowrap">機材名</th>
                             <th class="p-2 w-[10%] text-right whitespace-nowrap"></th>
                         </tr>
                     </thead>
@@ -512,6 +514,9 @@
             }
         }
 
+        // ==========================================
+        // 🔄 【タイポ修正】詳細画面が開かなくなるバグを解消
+        // ==========================================
         function switchTab(tab) {
             const tabs = {
                 list: document.getElementById('pageList'),
@@ -536,7 +541,7 @@
             
             if(tabs[tab]) tabs[tab].classList.remove('hidden');
             if(navs[tab]) {
-                navs[tab].text_slate_400 = 'text-slate-400';
+                // 💡 前回の「navs[tab].text_slate_400 = ...」というエラーを引き起こしていたタイポ行を完全抹消
                 navs[tab].classList.remove('text-slate-400');
                 navs[tab].classList.add('text-accentGreen');
             }
@@ -1139,6 +1144,27 @@
             return numA.localeCompare(numB, undefined, { numeric: true, sensitivity: 'base' });
         }
 
+        function openMaintModal(gearId) {
+            const gear = gears.find(g => g.id === gearId);
+            if (!gear) return;
+            document.getElementById('editTargetId').value = gear.id;
+            document.getElementById('editIdDisplay').innerText = gear.id;
+            document.getElementById('editName').value = gear.name || "";
+            document.getElementById('editCat').value = gear.category || "";
+            document.getElementById('editNum').value = gear.num || "";
+            document.getElementById('editMfr').value = gear.mfr || "";
+            document.getElementById('editSerial').value = gear.serial || "";
+            document.getElementById('editAsset').value = gear.asset || "";
+            document.getElementById('editAttachments').value = gear.attachments || "";
+            
+            document.getElementById('modalTitle').innerText = `${gear.name || '機材'} 詳細スペック`;
+            document.getElementById('maintModal')?.classList.remove('hidden');
+        }
+
+        function closeMaintModal() {
+            document.getElementById('maintModal')?.classList.add('hidden');
+        }
+
         function renderTable() {
             const container = document.getElementById('gearCardList'); if (!container) return;
             const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase();
@@ -1165,7 +1191,6 @@
                     </div>
                     
                     <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-2 mt-1" onclick="event.stopPropagation()">
-                        <!-- 💡 「No: 」の固定テキストを削除し、純粋に機材番号の値（マスター登録文字列）のみを表示 -->
                         <span class="text-[11px] text-slate-400 font-mono font-black truncate">${gear.num || '-'}</span>
                         <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
                             ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
@@ -1175,14 +1200,20 @@
             `).join('');
         }
 
+        // ==========================================
+        // 🛠️ 【修正箇所】管理画面（メンテナンス表）に番号列を追加
+        // ==========================================
         function renderMaintenanceTable() {
             const tbody = document.getElementById('maintTableBody'); if(!tbody) return;
             const keyword = document.getElementById('maintSearchKeyword').value.toLowerCase();
             let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
             displayData.sort(groupByCategoryAndSortNumber);
+            
+            // 💡 <td>に「gear.num（機材番号）」を出力する列を追加し、同一型番が連続しても簡単に識別可能に修正
             tbody.innerHTML = displayData.map(gear => `
                 <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
                     <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
+                    <td class="p-2 font-mono font-black text-slate-300 truncate">${gear.num || '-'}</td>
                     <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold">${gear.category}</span></td>
                     <td class="p-2 font-bold text-white truncate">${gear.name}</td>
                     <td class="p-2 text-right text-yellow-500 font-bold text-[10px]">></td>
