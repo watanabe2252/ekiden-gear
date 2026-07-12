@@ -478,7 +478,6 @@
         let gears = [];              
         let bbsMessages = [];
 
-        // 🔑 【重要】Supabaseの「Project Settings」>「API」>「VAPID Keys」にある公開鍵をここに設定してください
         const VAPID_PUBLIC_KEY = "BBu6HO1dufz6j0jC8u1PFD1rKpjoMHE4jLp0uN7I7YEJdHdCMHVuGe_YvG6cCX_0CiDT0pEqX1FyM4kJlJgDrPQ";
 
         function logStatus(msg) {
@@ -621,9 +620,6 @@
         }
         function closeCreateEventModal() { document.getElementById('createEventModal')?.classList.add('hidden'); }
         
-        // ==========================================
-        // 🔄 ページ制限を自動回避するデータロード処理
-        // ==========================================
         async function fetchSupabaseData(silent = false) {
             if (!globalThis.sb || !currentEventId) return;
             if (!silent) showLoading(true, "データベース同期中...");
@@ -647,7 +643,6 @@
                 }
                 if (!document.getElementById('locationManagerModal')?.classList.contains('hidden')) renderLocationManagerList();
 
-                // 💡 1,000件超えのアサインデータを全件回収するループ読み込み処理
                 let assignData = [];
                 let hasMore = true;
                 let page = 0;
@@ -706,9 +701,6 @@
             }
         }
 
-        // ==========================================
-        // 🛠️ 【大量データ完全対応】1,000件突破一括自動同期ロジック
-        // ==========================================
         async function manualRefreshData() {
             const icon = document.getElementById('iconRefresh');
             if (icon) icon.classList.add('animate-spin');
@@ -716,7 +708,6 @@
             
             if (globalThis.sb && currentEventId) {
                 try {
-                    // 1. マスター（gears）から1,000件の壁を破って全件取得
                     let masterGears = [];
                     let hasMoreMaster = true;
                     let masterPage = 0;
@@ -739,7 +730,6 @@
                     }
                     logStatus(`🔍 マスターデータベースから ${masterGears.length} 件の機材メタデータを検出しました。`);
 
-                    // 2. 現在の大会アサイン（event_assignments）からもループで全件取得
                     let currentAssigned = [];
                     let hasMoreAssign = true;
                     let assignPage = 0;
@@ -762,7 +752,6 @@
                     }
 
                     if (masterGears) {
-                        // 文字列クリーニング処理
                         const cleanId = (rawId) => {
                             if (!rawId) return "";
                             return String(rawId)
@@ -774,8 +763,6 @@
                         };
 
                         const assignedIds = new Set((currentAssigned || []).map(a => cleanId(a.gear_id)));
-                        
-                        // 差分（未登録）機材の抽出
                         const missingGears = masterGears.filter(g => !assignedIds.has(cleanId(g.id)));
                         
                         logStatus(`📊 スキャン完了: すでに登録済み ${assignedIds.size}件 / 今回アサインが必要な機材: ${missingGears.length}件`);
@@ -789,7 +776,6 @@
                                 location: "no assign"
                             }));
                             
-                            // 🔥 大量データを100件ずつの束（チャンク）に分解して安全にインサート（タイムアウト防止）
                             const CHUNK_SIZE = 100;
                             for (let i = 0; i < insertRecords.length; i += CHUNK_SIZE) {
                                 const chunk = insertRecords.slice(i, i + CHUNK_SIZE);
@@ -800,10 +786,9 @@
                                 }
                                 logStatus(`📦 進捗: ${Math.min(i + CHUNK_SIZE, insertRecords.length)} / ${insertRecords.length} 件アサイン完了...`);
                             }
-                            
-                            logStatus(`✅ 1,000件制限を突破し、合計 ${missingGears.length} 件のすべての機材の自動アサインに完全成功しました！`);
+                            logStatus(`✅ 全ての機材の自動アサインに完全成功しました！`);
                         } else {
-                            logStatus("ℹ️ 現在の大会ファイルに未同期のマスター機材はありません。同期は完璧です。");
+                            logStatus("ℹ️ 現在の大会ファイルに未同期のマスター機材はありません。");
                         }
                     }
                 } catch (e) {
@@ -956,7 +941,7 @@
             if (globalThis.isViewerMode) return alert("権限がありません。");
             if (!confirm("本当にこのメッセージを削除しますか？")) return;
             try {
-                const { error } = await globalThis.sb.from('messages').delete().eq('id', id);
+                const { error = null } = await globalThis.sb.from('messages').delete().eq('id', id);
                 if (error) throw error;
                 await fetchSupabaseData(true);
             } catch (err) { alert("削除失敗: " + err.message); }
@@ -1155,7 +1140,7 @@
         }
 
         // ==========================================
-        // 🛠️ 【修正箇所】機材名が長い場合に2段（複数行）表示を許可
+        // 🛠️ 【修正箇所】右端の機材番号を削除、下段のS/Nを機材番号表示へ変更
         // ==========================================
         function renderTable() {
             const container = document.getElementById('gearCardList'); if (!container) return;
@@ -1178,14 +1163,13 @@
                         <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${gear.id}</span>
                     </div>
                     
-                    <!-- 💡 truncateを削除し、break-words、leading-tightを指定して、長い機材名が2段（複数行）で折り返して全表示されるように修正 -->
                     <div class="flex items-start justify-between gap-1.5 w-full min-w-0">
                         <span class="font-bold text-white text-sm break-words leading-tight flex-1 keep-word">${gear.name}</span>
-                        <span class="font-mono text-[11px] text-slate-400 font-black shrink-0 ml-1 pt-0.5">${gear.num || '-'}</span>
                     </div>
                     
                     <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-2 mt-1" onclick="event.stopPropagation()">
-                        <span class="text-[9px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
+                        <!-- 💡 シリアル(S/N)の代わりに、元々見にくかった「機材番号」をここに大きく表示 -->
+                        <span class="text-[11px] text-slate-400 font-mono font-black truncate">No: ${gear.num || '-'}</span>
                         <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
                             ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
                         </select>
