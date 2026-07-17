@@ -632,17 +632,26 @@
                 }
                 const isViewer = (userRole === 'viewer');
                 if(container) {
-                    container.innerHTML = events.map(ev => `
-                        <div class="bg-cardBg border border-borderStroke p-3 rounded-xl flex justify-between items-center transition gap-2">
+                    container.innerHTML = events.map(ev => {
+                        const isArchived = ev.status === 'archived';
+                        const statusBadge = isArchived
+                            ? `<span class="inline-block bg-slate-800 text-slate-400 text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">🗄️ ARCHIVE</span>`
+                            : `<span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">⚡ ONLINE</span>`;
+                        return `
+                        <div class="bg-cardBg border border-borderStroke p-3 rounded-xl flex justify-between items-center transition gap-2 ${isArchived ? 'opacity-60' : ''}">
                             <div onclick="selectEventFile('${jsAttr(ev.id)}', '${jsAttr(ev.name)}')" class="text-left flex-1 cursor-pointer active:scale-[0.99] min-w-0">
-                                <h4 class="text-xs font-bold text-white truncate">📁 ${escapeHtml(ev.name)}</h4>
+                                <div class="flex items-center gap-1.5">
+                                    <h4 class="text-xs font-bold text-white truncate">📁 ${escapeHtml(ev.name)}</h4>
+                                    ${statusBadge}
+                                </div>
                                 <p class="text-[9px] text-slate-500 font-mono mt-0.5">開催日: ${escapeHtml(ev.date)}</p>
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0">
                                 ${!isViewer ? `<button onclick="openEditEventModal('${jsAttr(ev.id)}')" class="text-[10px] bg-slate-800 text-yellow-500 px-2 py-1 rounded-lg border border-slate-700 font-bold">編集</button>` : ''}
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 }
                 document.getElementById('pageEventSelect')?.classList.remove('hidden');
                 showLoading(false);
