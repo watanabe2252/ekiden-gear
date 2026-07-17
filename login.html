@@ -131,15 +131,15 @@
                 if (data && data.session) {
                     // セッションをローカルストレージへ保存してガードをクリア
                     localStorage.setItem('ekiden_secure_session', data.session.access_token);
-                    
-                    // 入力されたIDの文字列（前方一致）でユーザー権限（Role）を自動切り替え
-                    let userRole = "admin"; 
-                    if (inputId.toLowerCase().includes('viewer')) {
-                        userRole = "viewer";
-                    } else if (inputId.toLowerCase().includes('staff')) {
-                        userRole = "staff";
-                    }
-                    localStorage.setItem('ekiden_user_role', userRole);
+
+                    // profilesテーブルから正規のロールを取得（RLSで守られた実体）
+                    const { data: profile, error: profileErr } = await sb
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', data.session.user.id)
+                        .single();
+                    if (profileErr) console.error("Profile fetch error:", profileErr);
+                    localStorage.setItem('ekiden_user_role', profile?.role || 'viewer');
 
                     // PWA最適化済みの index.html へ安全にリダイレクト
                     window.location.href = "index.html";

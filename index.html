@@ -566,9 +566,26 @@
             });
         }
 
+        async function syncUserRole() {
+            if (!globalThis.sb) return localStorage.getItem('ekiden_user_role') || 'viewer';
+            try {
+                const { data: { session } } = await globalThis.sb.auth.getSession();
+                if (!session) return 'viewer';
+                const { data: profile, error } = await globalThis.sb.from('profiles').select('role').eq('id', session.user.id).single();
+                if (error) throw error;
+                const role = profile?.role || 'viewer';
+                localStorage.setItem('ekiden_user_role', role);
+                return role;
+            } catch (err) {
+                logStatus("⚠️ ロール同期失敗、キャッシュ値を使用: " + err.message);
+                return localStorage.getItem('ekiden_user_role') || 'viewer';
+            }
+        }
+
         async function loadEventMenu() {
             if (!globalThis.sb) return;
-            userRole = localStorage.getItem('ekiden_user_role') || 'viewer';
+            userRole = await syncUserRole();
+            applyRoleRestrictions();
             showLoading(true, "🔌 大会リストの同期を開始...");
             
             const diagTimer = setTimeout(() => {
