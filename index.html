@@ -847,7 +847,7 @@
             const ev = events.find(e => e.id === id);
             if (!ev) return;
             document.getElementById('editEventTargetId').value = ev.id;
-            document.getElementById('editEventDisplay').innerText = ev.id;
+            document.getElementById('editEventIdDisplay').innerText = ev.id;
             document.getElementById('editEventName').value = ev.name || "";
             document.getElementById('editEventDate').value = ev.date || "";
             document.getElementById('editEventStatus').value = ev.status || "active";
