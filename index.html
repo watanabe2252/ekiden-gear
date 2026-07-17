@@ -474,8 +474,9 @@
         let events = [];
         let currentEventId = null; 
         let currentEventName = "";
-        let userRole = "viewer";   
-        let gears = [];              
+        let userRole = "viewer";
+        let currentUserId = null;
+        let gears = [];
         let bbsMessages = [];
 
         // 🔑 【重要】Supabaseの「Project Settings」>「API」>「VAPID Keys」にある公開鍵をここに設定してください
@@ -593,7 +594,8 @@
             if (!globalThis.sb) return localStorage.getItem('ekiden_user_role') || 'viewer';
             try {
                 const { data: { session } } = await globalThis.sb.auth.getSession();
-                if (!session) return 'viewer';
+                if (!session) { currentUserId = null; return 'viewer'; }
+                currentUserId = session.user.id;
                 const { data: profile, error } = await globalThis.sb.from('profiles').select('role').eq('id', session.user.id).single();
                 if (error) throw error;
                 const role = profile?.role || 'viewer';
@@ -964,10 +966,13 @@
             localStorage.setItem('ekiden_bbs_name', name);
             try {
                 if (editId) {
-                    await globalThis.sb.from('messages').update({ name, body }).eq('id', editId);
+                    const { data, error } = await globalThis.sb.from('messages').update({ name, body }).eq('id', editId).select();
+                    if (error) throw error;
+                    if (!data || data.length === 0) throw new Error("この投稿を編集する権限がありません（投稿者本人またはadminのみ編集可能です）。");
                     cancelBBSEdit();
                 } else {
-                    await globalThis.sb.from('messages').insert([{ name, body, event_id: currentEventId }]);
+                    const { error } = await globalThis.sb.from('messages').insert([{ name, body, event_id: currentEventId, user_id: currentUserId }]);
+                    if (error) throw error;
                     document.getElementById('msgBody').value = "";
                 }
             } catch (err) { alert("送信失敗: " + err.message); }
@@ -999,8 +1004,9 @@
             if (globalThis.isViewerMode) return alert("権限がありません。");
             if (!confirm("本当にこのメッセージを削除しますか？")) return;
             try {
-                const { error } = await globalThis.sb.from('messages').delete().eq('id', id);
+                const { data, error } = await globalThis.sb.from('messages').delete().eq('id', id).select();
                 if (error) throw error;
+                if (!data || data.length === 0) throw new Error("この投稿を削除する権限がありません（投稿者本人またはadminのみ削除可能です）。");
                 await fetchSupabaseData(true);
             } catch (err) { alert("削除失敗: " + err.message); }
         }
@@ -1011,6 +1017,7 @@
             container.innerHTML = bbsMessages.map(msg => {
                 const date = new Date(msg.created_at);
                 const timeStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                const canModify = !globalThis.isViewerMode && (userRole === 'admin' || (currentUserId && msg.user_id === currentUserId));
                 return `
                     <div class="bg-cardBg border border-borderStroke p-2.5 rounded-xl space-y-1">
                         <div class="flex items-center justify-between border-b border-borderStroke/40 pb-1 gap-2">
@@ -1018,7 +1025,7 @@
                                 <span class="text-accentGreen font-bold text-xs truncate">${escapeHtml(msg.name)}</span>
                                 <span class="text-[9px] text-slate-500 font-mono">${timeStr}</span>
                             </div>
-                            ${!globalThis.isViewerMode ? `
+                            ${canModify ? `
                             <div class="flex items-center gap-1 shrink-0">
                                 <button onclick="startBBSEdit('${jsAttr(msg.id)}')" class="text-[9px] bg-slate-900 text-slate-400 hover:text-white border border-borderStroke px-1.5 py-0.5 rounded transition">編集</button>
                                 <button onclick="deleteBBSMessage('${jsAttr(msg.id)}')" class="text-[9px] bg-slate-900 text-rose-500 hover:bg-rose-900/60 border border-borderStroke px-1.5 py-0.5 rounded transition">削除</button>
@@ -1262,7 +1269,8 @@
                 try {
                     const registration = await navigator.serviceWorker.ready; const oldSub = await registration.pushManager.getSubscription(); if (oldSub) await oldSub.unsubscribe();
                     const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
-                    await globalThis.sb.from('push_subscriptions').insert([{ subscription: subscription.toJSON() }]);
+                    const { error: subErr } = await globalThis.sb.from('push_subscriptions').insert([{ subscription: subscription.toJSON(), user_id: currentUserId }]);
+                    if (subErr) throw subErr;
                     alert("🚀 プッシュ通知が有効になりました！");
                 } catch (err) { alert("登録失敗: " + err.message); element.checked = false; } finally { showLoading(false); }
             } else {
@@ -1270,7 +1278,11 @@
                 showLoading(true, "通知サービスを解除中...");
                 try {
                     const registration = await navigator.serviceWorker.ready; const subscription = await registration.pushManager.getSubscription();
-                    if (subscription) { const endpoint = subscription.endpoint; await subscription.unsubscribe(); await globalThis.sb.from('push_subscriptions').delete().textSearch('subscription', endpoint); }
+                    if (subscription) {
+                        const endpoint = subscription.endpoint;
+                        await subscription.unsubscribe();
+                        await globalThis.sb.from('push_subscriptions').delete().eq('user_id', currentUserId).eq('subscription->>endpoint', endpoint);
+                    }
                     alert("通知を完全に解除しました。");
                 } catch (e) {} finally { showLoading(false); }
             }
