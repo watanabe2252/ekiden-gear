@@ -754,7 +754,7 @@
             if (icon) icon.classList.add('animate-spin');
             logStatus("⏳ 大規模データベースのスキャンを開始（1,000件超え対応モード）...");
             
-            if (globalThis.sb && currentEventId) {
+            if (globalThis.sb && currentEventId && userRole !== 'viewer') {
                 try {
                     // 1. マスター（gears）から1,000件の壁を破って全件取得
                     let masterGears = [];
@@ -850,8 +850,10 @@
                     console.error("自動同期エラー:", e);
                     logStatus(`❌ 同期失敗: ${e.message}`);
                 }
-            } else {
+            } else if (!currentEventId) {
                 logStatus("❌ 大会ファイルが選択されていません。");
+            } else if (userRole === 'viewer') {
+                logStatus("ℹ️ 閲覧者権限のため自動アサインはスキップし、最新データの取得のみ行います。");
             }
             await fetchSupabaseData(false);
             if (icon) { setTimeout(() => { icon.classList.remove('animate-spin'); }, 600); }
