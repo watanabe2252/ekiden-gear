@@ -481,10 +481,33 @@
         // 🔑 【重要】Supabaseの「Project Settings」>「API」>「VAPID Keys」にある公開鍵をここに設定してください
         const VAPID_PUBLIC_KEY = "BBu6HO1dufz6j0jC8u1PFD1rKpjoMHE4jLp0uN7I7YEJdHdCMHVuGe_YvG6cCX_0CiDT0pEqX1FyM4kJlJgDrPQ";
 
+        // HTMLテキスト/属性値として埋め込むためのエスケープ
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // onclick="fn('${...}')" のように、HTML属性内のJS文字列リテラルとして埋め込むためのエスケープ
+        // (JS文字列エスケープ → HTML属性エスケープの順で二重にかける必要がある)
+        function jsAttr(str) {
+            if (str === null || str === undefined) return '';
+            const jsEscaped = String(str)
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r');
+            return escapeHtml(jsEscaped);
+        }
+
         function logStatus(msg) {
             console.log(msg);
             const el = document.getElementById('errorDetails');
-            if (el) el.innerHTML += `> ${msg}<br>`;
+            if (el) el.innerHTML += `> ${escapeHtml(msg)}<br>`;
         }
 
         function showLoading(show, text = "CONNECTING TO SUPABASE...") {
@@ -554,10 +577,10 @@
                 const currentVal = el.value;
                 
                 if (id === 'filterLocation') {
-                    el.innerHTML = `<option value="ALL">📍 すべての配置先</option>` + 
-                        locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+                    el.innerHTML = `<option value="ALL">📍 すべての配置先</option>` +
+                        locations.map(loc => `<option value="${escapeHtml(loc)}">${escapeHtml(loc)}</option>`).join('');
                 } else {
-                    el.innerHTML = locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+                    el.innerHTML = locations.map(loc => `<option value="${escapeHtml(loc)}">${escapeHtml(loc)}</option>`).join('');
                 }
                 
                 if ([...el.options].some(o => o.value === currentVal)) {
@@ -613,12 +636,12 @@
                 if(container) {
                     container.innerHTML = events.map(ev => `
                         <div class="bg-cardBg border border-borderStroke p-3 rounded-xl flex justify-between items-center transition gap-2">
-                            <div onclick="selectEventFile('${ev.id}', '${ev.name}')" class="text-left flex-1 cursor-pointer active:scale-[0.99] min-w-0">
-                                <h4 class="text-xs font-bold text-white truncate">📁 ${ev.name}</h4>
-                                <p class="text-[9px] text-slate-500 font-mono mt-0.5">開催日: ${ev.date}</p>
+                            <div onclick="selectEventFile('${jsAttr(ev.id)}', '${jsAttr(ev.name)}')" class="text-left flex-1 cursor-pointer active:scale-[0.99] min-w-0">
+                                <h4 class="text-xs font-bold text-white truncate">📁 ${escapeHtml(ev.name)}</h4>
+                                <p class="text-[9px] text-slate-500 font-mono mt-0.5">開催日: ${escapeHtml(ev.date)}</p>
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0">
-                                ${!isViewer ? `<button onclick="openEditEventModal('${ev.id}')" class="text-[10px] bg-slate-800 text-yellow-500 px-2 py-1 rounded-lg border border-slate-700 font-bold">編集</button>` : ''}
+                                ${!isViewer ? `<button onclick="openEditEventModal('${jsAttr(ev.id)}')" class="text-[10px] bg-slate-800 text-yellow-500 px-2 py-1 rounded-lg border border-slate-700 font-bold">編集</button>` : ''}
                             </div>
                         </div>
                     `).join('');
@@ -990,16 +1013,16 @@
                     <div class="bg-cardBg border border-borderStroke p-2.5 rounded-xl space-y-1">
                         <div class="flex items-center justify-between border-b border-borderStroke/40 pb-1 gap-2">
                             <div class="flex items-center gap-2 truncate">
-                                <span class="text-accentGreen font-bold text-xs truncate">${msg.name}</span>
+                                <span class="text-accentGreen font-bold text-xs truncate">${escapeHtml(msg.name)}</span>
                                 <span class="text-[9px] text-slate-500 font-mono">${timeStr}</span>
                             </div>
                             ${!globalThis.isViewerMode ? `
                             <div class="flex items-center gap-1 shrink-0">
-                                <button onclick="startBBSEdit('${msg.id}')" class="text-[9px] bg-slate-900 text-slate-400 hover:text-white border border-borderStroke px-1.5 py-0.5 rounded transition">編集</button>
-                                <button onclick="deleteBBSMessage('${msg.id}')" class="text-[9px] bg-slate-900 text-rose-500 hover:bg-rose-900/60 border border-borderStroke px-1.5 py-0.5 rounded transition">削除</button>
+                                <button onclick="startBBSEdit('${jsAttr(msg.id)}')" class="text-[9px] bg-slate-900 text-slate-400 hover:text-white border border-borderStroke px-1.5 py-0.5 rounded transition">編集</button>
+                                <button onclick="deleteBBSMessage('${jsAttr(msg.id)}')" class="text-[9px] bg-slate-900 text-rose-500 hover:bg-rose-900/60 border border-borderStroke px-1.5 py-0.5 rounded transition">削除</button>
                             </div>` : ''}
                         </div>
-                        <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight pt-0.5 keep-word">${msg.body}</p>
+                        <p class="text-gray-200 text-xs whitespace-pre-wrap leading-tight pt-0.5 keep-word">${escapeHtml(msg.body)}</p>
                     </div>
                 `;
             }).join('');
@@ -1109,12 +1132,12 @@
             container.innerHTML = rawCloudLocations.map((loc, idx) => `
                 <div class="sortable-item bg-bgDark border border-borderStroke p-2 rounded-xl flex items-center justify-between gap-2 shadow-inner group" draggable="true" data-loc-id="${loc.id}" data-index="${idx}" ondragstart="handleDragStart(event)" ondragover="handleDragOver(event)" ondragend="handleDragEnd(event)">
                     <div class="text-slate-600 group-hover:text-slate-400 px-1 cursor-grab active:cursor-grabbing text-xs"><i class="fas fa-grip-lines"></i></div>
-                    <input type="text" value="${loc.name}" onchange="updateLocationName(${loc.id}, this.value)" class="flex-1 bg-cardBg border border-borderStroke rounded px-2 py-1 text-xs text-white outline-none font-bold focus:border-yellow-500">
+                    <input type="text" value="${escapeHtml(loc.name)}" onchange="updateLocationName(${loc.id}, this.value)" class="flex-1 bg-cardBg border border-borderStroke rounded px-2 py-1 text-xs text-white outline-none font-bold focus:border-yellow-500">
                     <div class="flex items-center gap-0.5 shrink-0">
                         <button onclick="moveLocationRow(${idx}, -1)" class="bg-slate-900 text-slate-400 hover:text-white p-1 rounded text-[10px]"><i class="fas fa-chevron-up"></i></button>
                         <button onclick="moveLocationRow(${idx}, 1)" class="bg-slate-900 text-slate-400 hover:text-white p-1 rounded text-[10px]"><i class="fas fa-chevron-down"></i></button>
                     </div>
-                    <button onclick="deleteLocationPoint(${loc.id}, '${loc.name}')" class="bg-rose-950/40 text-rose-400 p-1.5 rounded-lg text-xs shrink-0 hover:bg-rose-900/60 transition"><i class="fas fa-trash-alt"></i></button>
+                    <button onclick="deleteLocationPoint(${loc.id}, '${jsAttr(loc.name)}')" class="bg-rose-950/40 text-rose-400 p-1.5 rounded-lg text-xs shrink-0 hover:bg-rose-900/60 transition"><i class="fas fa-trash-alt"></i></button>
                 </div>
             `).join('');
         }
@@ -1186,19 +1209,19 @@
             if (displayData.length === 0) { container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-6 text-xs">該当機材なし</div>`; return; }
             displayData.sort(groupByCategoryAndSortNumber);
             container.innerHTML = displayData.map(gear => `
-                <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-col p-3 gap-2 justify-center" onclick="openMaintModal('${gear.id}')">
+                <div class="bg-cardBg border border-borderStroke rounded-xl overflow-hidden shadow-md cursor-pointer hover:border-accentGreen/40 flex flex-col p-3 gap-2 justify-center" onclick="openMaintModal('${jsAttr(gear.id)}')">
                     <div class="flex items-center justify-between gap-1 w-full">
-                        <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${gear.category}</span>
-                        <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${gear.id}</span>
+                        <span class="inline-block bg-emerald-500/10 text-accentGreen text-[8px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap truncate">${escapeHtml(gear.category)}</span>
+                        <span class="font-mono text-[9px] text-slate-500 font-bold truncate">ID: ${escapeHtml(gear.id)}</span>
                     </div>
                     <div class="flex items-center gap-1.5 w-full min-w-0">
-                        <span class="font-bold text-white text-sm truncate max-w-[85%]">${gear.name}</span>
-                        <span class="font-mono text-[11px] text-slate-400 font-black shrink-0">${gear.num || '-'}</span>
+                        <span class="font-bold text-white text-sm truncate max-w-[85%]">${escapeHtml(gear.name)}</span>
+                        <span class="font-mono text-[11px] text-slate-400 font-black shrink-0">${escapeHtml(gear.num) || '-'}</span>
                     </div>
                     <div class="flex items-center justify-between gap-2 border-t border-borderStroke/30 pt-2 mt-1" onclick="event.stopPropagation()">
-                        <span class="text-[9px] text-slate-500 font-mono truncate">S/N: ${gear.serial || '----'}</span>
-                        <select onchange="changeGearLocation('${gear.id}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
-                            ${locations.map(loc => `<option value="${loc}" ${gear.location === loc ? 'selected' : ''}>${loc}</option>`).join('')}
+                        <span class="text-[9px] text-slate-500 font-mono truncate">S/N: ${escapeHtml(gear.serial) || '----'}</span>
+                        <select onchange="changeGearLocation('${jsAttr(gear.id)}', this.value)" ${globalThis.isViewerMode ? 'disabled' : ''} class="bg-bgDark border border-borderStroke text-slate-100 py-1 px-2 rounded-lg text-xs font-bold outline-none flex-1 max-w-[150px] text-right focus:border-accentGreen cursor-pointer">
+                            ${locations.map(loc => `<option value="${escapeHtml(loc)}" ${gear.location === loc ? 'selected' : ''}>${escapeHtml(loc)}</option>`).join('')}
                         </select>
                     </div>
                 </div>
@@ -1211,10 +1234,10 @@
             let displayData = gears.filter(gear => (gear.id && gear.id.toLowerCase().includes(keyword)) || (gear.name && gear.name.toLowerCase().includes(keyword)) || (gear.category && gear.category.toLowerCase().includes(keyword)));
             displayData.sort(groupByCategoryAndSortNumber);
             tbody.innerHTML = displayData.map(gear => `
-                <tr onclick="openMaintModal('${gear.id}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
-                    <td class="p-2 font-mono text-slate-400 font-bold truncate">${gear.id}</td>
-                    <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold">${gear.category}</span></td>
-                    <td class="p-2 font-bold text-white truncate">${gear.name}</td>
+                <tr onclick="openMaintModal('${jsAttr(gear.id)}')" class="hover:bg-slate-800/60 cursor-pointer border-b border-borderStroke transition">
+                    <td class="p-2 font-mono text-slate-400 font-bold truncate">${escapeHtml(gear.id)}</td>
+                    <td class="p-2"><span class="bg-yellow-500/10 text-yellow-400 text-[10px] px-1.5 py-0.5 rounded font-bold">${escapeHtml(gear.category)}</span></td>
+                    <td class="p-2 font-bold text-white truncate">${escapeHtml(gear.name)}</td>
                     <td class="p-2 text-right text-yellow-500 font-bold text-[10px]">></td>
                 </tr>
             `).join('');
